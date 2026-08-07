@@ -1,29 +1,26 @@
-% Draft for Optimization Letters (Springer).
-% Written in standard article class for review; retarget to sn-jnl.cls
-% (Springer Nature) at submission time -- content carries over unchanged.
-\documentclass[11pt]{article}
+% Optimization Letters submission -- Springer Nature template
+% (sn-jnl.cls, December 2024; sn-mathphys-num reference style, which
+% renders doi fields as full https://doi.org links).
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
 
-\usepackage[margin=1in]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
 \usepackage{graphicx}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{mathtools}
 \usepackage{booktabs}
-\usepackage[numbers,sort&compress]{natbib}
-\usepackage{microtype}
-\usepackage[hidelinks]{hyperref}
-% Render DOIs as full links, per the Optimization Letters guidelines.
-% The .bbl only \providecommand's \doi, so this definition takes effect.
-\newcommand{\doi}[1]{\url{https://doi.org/#1}}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
 
+\theoremstyle{thmstyleone}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \newtheorem{proposition}{Proposition}
 \newtheorem{corollary}{Corollary}
-\theoremstyle{remark}
+\theoremstyle{thmstyletwo}
 \newtheorem{remark}{Remark}
+
+\raggedbottom
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\supp}{\operatorname{supp}}
@@ -31,21 +28,19 @@
 \newcommand{\T}{{\mathsf T}}
 \newcommand{\prob}[1]{\mathrm{P}(#1)}
 
-\title{Exactness of an iterated divide-and-conquer method for
-large-scale nonnegative least squares}
-
-\author{Emre H. Brookes\\[2pt]
-\small Department of Chemistry \& Biochemistry, University of Montana,
-Missoula, Montana, USA\\
-\small \texttt{emre.brookes@umontana.edu}\ \ $\cdot$\ \ ORCID:
-\href{https://orcid.org/0000-0001-7348-6476}{0000-0001-7348-6476}}
-
-\date{\today}
-
 \begin{document}
-\maketitle
 
-\begin{abstract}
+\title[Exact iterated divide-and-conquer NNLS]{Exactness of an iterated
+divide-and-conquer method for large-scale nonnegative least squares}
+
+% ORCID 0000-0001-7348-6476 (entered in Editorial Manager metadata).
+\author*[1]{\fnm{Emre H.} \sur{Brookes}}\email{emre.brookes@umontana.edu}
+
+\affil*[1]{\orgdiv{Department of Chemistry \& Biochemistry},
+\orgname{University of Montana}, \orgaddress{\city{Missoula},
+\state{Montana}, \country{USA}}}
+
+\abstract{
 Model-based fitting of experimental data frequently leads to nonnegative
 least squares (NNLS) problems whose design matrices exceed the memory of a
 single workstation; in the analysis of analytical ultracentrifugation
@@ -70,16 +65,15 @@ constant factor of the signal, so the feedback rounds are necessary.
 Suboptimality under inexact solves and pricing is bounded, and the
 analysis is
 confirmed numerically on correlated designs representative of the
-motivating application.
-\end{abstract}
+motivating application.}
 
-\noindent\textbf{Keywords:} nonnegative least squares $\cdot$ divide and
-conquer $\cdot$ column generation $\cdot$ active-set methods $\cdot$
-global optimality certificate $\cdot$ analytical ultracentrifugation
+\keywords{nonnegative least squares, divide and conquer, column
+generation, active-set methods, global optimality certificate,
+analytical ultracentrifugation}
 
-\medskip
-\noindent\textbf{MSC codes:} 90C20 $\cdot$ 65F20 $\cdot$ 90C06 $\cdot$
-65K05
+\pacs[MSC Classification]{90C20, 65F20, 90C06, 65K05}
+
+\maketitle
 
 \section{Introduction}\label{sec:intro}
 
@@ -616,16 +610,16 @@ suboptimal when its value exceeds $v^*$ by more than
 $10^{-9}(1+v^*)$.}
 \label{tab:trials}
 \footnotesize
-\setlength{\tabcolsep}{4.5pt}
-\begin{tabular}{lcccccc}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-suite & trials & rounds & worst value & worst pricing
-& worst compl. & single pass\\
- & & min/med/max & gap & $\delta$ & $\varepsilon$ & suboptimal\\
+suite & trials & rounds & value gap & pricing $\delta$
+& compl.\ $\varepsilon$ & single pass\\
+ & & min/med/max & (worst) & (worst) & (worst) & suboptimal\\
 \midrule
-smooth correlated kernels & 60 & 4/6/9 & $2.2\times10^{-16}$
+smooth kernels & 60 & 4/6/9 & $2.2\times10^{-16}$
 & $2.5\times10^{-16}$ & $1.1\times10^{-13}$ & 60/60\\
-2-D lattice, interlaced subgrids & 40 & 7/10/13 & $4.4\times10^{-16}$
+lattice, interlaced & 40 & 7/10/13 & $4.4\times10^{-16}$
 & $2.7\times10^{-16}$ & $1.3\times10^{-13}$ & 40/40\\
 i.i.d.\ Gaussian & 60 & 2/3/3 & $3.1\times10^{-28}$
 & $8.8\times10^{-16}$ & $6.0\times10^{-14}$ & 33/60\\
@@ -785,7 +779,6 @@ note, are available at \url{https://github.com/ehb54/nnls-dc-proof}.
 \paragraph{Competing interests.}
 The author declares no competing interests.
 
-\bibliographystyle{abbrvnat}
 \bibliography{refs}
 
 \end{document}

@@ -17,10 +17,13 @@ is not exact.
 - `experiments.py` — paper driver: reruns the suites (same seed/draw
   order as verify.py), prints the LaTeX table rows, renders
   `paper/figs/convergence.{pdf,png}`.
-- `paper/` — Optimization Letters draft (`main.tex`, `refs.bib`,
-  `Makefile`). `make` builds `main.pdf` (pdflatex + bibtex; BasicTeX
-  needs `algorithms`/`algorithmicx`/`float` installed via
-  `tlmgr --usermode`, already done on this machine).
+- `paper/` — Optimization Letters manuscript in the Springer Nature
+  template (`main.tex`, `sn-jnl.cls` + `sn-mathphys-num.bst` from the
+  December 2024 sn-article package, `refs.bib`, `Makefile`). `make`
+  builds `main.pdf` (pdflatex + bibtex; on BasicTeX install
+  `algorithms algorithmicx float sttools threeparttable appendix
+  breakurl wrapfig` via `tlmgr --usermode`, already done on this
+  machine).
 
 ## Environment
 
@@ -45,9 +48,7 @@ reserved pending journal publication.
 
 ## Submission TODOs
 
-- Retarget to Springer Nature `sn-jnl.cls` at submission; render DOIs
-  as full https://doi.org/... links per the OL guidelines.
-- When finalized: archive a tagged release via Zenodo for a citable DOI
-  (deliberately not created yet).
+- Zenodo: enable the GitHub integration for this repo, then tag a
+  release; put the minted DOI into the Data availability statement.
 - Optional strengthening: replace the Gaussian-kernel surrogates with
   real Lamm-equation (ASTFEM) design matrices exported from UltraScan.

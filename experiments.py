@@ -88,7 +88,8 @@ def latex_row(name, recs):
 
 def make_figure(smooth, all_recs):
     os.makedirs(FIGDIR, exist_ok=True)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.6, 2.7))
+    # 31pc text width of the Springer sn-jnl class ~ 5.15 in
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.15, 2.35))
 
     # Panel (a): relative excess SSR per round, smooth-kernel suite.
     # After a trial terminates, its terminal value is carried forward so the
@@ -123,14 +124,13 @@ def make_figure(smooth, all_recs):
     ax2.hist(rounds_all, bins=bins, color=BLUE, edgecolor="white", lw=1.5)
     ax2.set_xlabel("rounds to termination", fontsize=9, color=INK)
     ax2.set_ylabel("trials", fontsize=9, color=INK)
-    ax2.set_title(f"(b) rounds to termination (all {len(all_recs)} trials)",
-                  fontsize=9, color=INK)
+    ax2.set_title("(b) rounds to termination", fontsize=9, color=INK)
     ax2.set_xticks(range(min(rounds_all), max(rounds_all) + 1))
 
     for ax in (ax1, ax2):
         ax.spines[["top", "right"]].set_visible(False)
         ax.spines[["left", "bottom"]].set_color(MUTED)
-        ax.tick_params(colors=MUTED, labelsize=8)
+        ax.tick_params(colors=MUTED, labelsize=7)
         ax.grid(axis="y", color=GRID, lw=0.6, zorder=0)
         ax.set_axisbelow(True)
 
