@@ -1,5 +1,7 @@
 # Exactness of iterated divide-and-conquer NNLS
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21839524.svg)](https://doi.org/10.5281/zenodo.21839524)
+
 Proof that the iterative divide-and-conquer NNLS method of Brookes,
 Boppana & Demeler (SC'06, doi 10.1145/1188455.1188541) — as deployed in
 UltraScan's 2DSA — terminates finitely at a global minimizer of the
@@ -46,9 +48,13 @@ released under the MIT License (see `LICENSE`). The manuscript text
 `nnls_dc_equivalence.md`) is (c) 2026 Emre H. Brookes, all rights
 reserved pending journal publication.
 
-## Submission TODOs
+## Archive
 
-- Zenodo: enable the GitHub integration for this repo, then tag a
-  release; put the minted DOI into the Data availability statement.
-- Optional strengthening: replace the Gaussian-kernel surrogates with
-  real Lamm-equation (ASTFEM) design matrices exported from UltraScan.
+Releases are archived on Zenodo under concept DOI
+[10.5281/zenodo.21839524](https://doi.org/10.5281/zenodo.21839524)
+(v1.0.0 = submission version, doi 10.5281/zenodo.21839525).
+
+## Possible future work
+
+- Replace the Gaussian-kernel surrogates with real Lamm-equation
+  (ASTFEM) design matrices exported from UltraScan.
