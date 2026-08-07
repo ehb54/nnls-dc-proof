@@ -265,7 +265,7 @@ def interlaced_blocks():
 def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
                fan_in_choices=(2, 4), blocks_fn=None):
     rounds_hist = []
-    sp_gaps = []
+    sp_subopt = []
     reasons = {}
     worst_val_err = 0.0
     worst_delta = -np.inf
@@ -282,7 +282,9 @@ def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
 
         _, _, vals1, _ = dc_nnls(A, b, nblocks=nb, blocks=blocks,
                                  iterative=False, fan_in=fi)
-        sp_gaps.append((vals1[-1] - v_full) / max(v_full, 1e-30))
+        # single-pass suboptimality, same criterion as the manuscript
+        # (Table 1) and experiments.py: v_sp - v* > 1e-9 (1 + v*)
+        sp_subopt.append(vals1[-1] - v_full > 1e-9 * (1.0 + v_full))
 
         x, R, vals, reason = dc_nnls(A, b, nblocks=nb, blocks=blocks,
                                      iterative=True, fan_in=fi)
@@ -299,7 +301,6 @@ def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
         assert val_err < 1e-7, (name, trial, v, v_full)
         assert delta_s < 1e-7, (name, trial, delta_s)
         assert eps_s < 1e-7, (name, trial, eps_s)
-    sp_gaps = np.array(sp_gaps)
     print(f"== {name}: {n_trials} trials ==")
     print(f"  rounds to termination: min {min(rounds_hist)}, "
           f"median {int(np.median(rounds_hist))}, max {max(rounds_hist)}")
@@ -307,8 +308,8 @@ def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
     print(f"  worst |value(dc) - value(full)| (rel): {worst_val_err:.3e}")
     print(f"  worst scaled pricing residual delta: {worst_delta:.3e}")
     print(f"  worst scaled complementarity residual eps: {worst_eps:.3e}")
-    print(f"  single-pass suboptimal (excess > 1e-8 rel): "
-          f"{int(np.sum(sp_gaps > 1e-8))}/{n_trials}")
+    print(f"  single-pass suboptimal (v_sp - v* > 1e-9(1+v*)): "
+          f"{int(np.sum(sp_subopt))}/{n_trials}")
     print("  PASS: iterative D&C matched full NNLS in every trial.\n")
 
 

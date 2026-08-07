@@ -707,10 +707,9 @@ Lemma~\ref{lem:tree} no longer applies and a round can in principle lose
 ground, taking the certificate's soundness proof with it. Since
 basic-solution solvers return supports with at most
 $\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), a
-fan-in-$q$ merge over whole returned sets contains at most
-$q\operatorname{rank}(A)$ candidate indices, so atomic packing
-preserves the guarantee within the same memory envelope as chunking;
-this appears advisable in any implementation. Two further
+fan-in-$q$ atomic merge contains at most $q\operatorname{rank}(A)$
+candidate indices, giving a predictable memory bound while preserving
+the guarantee; this appears advisable in any implementation. Two further
 practical consequences of the analysis: stopping on an unchanged
 \emph{value} is sound and robust under non-uniqueness
 (Remark~\ref{rem:stopping}), and one distributed pricing sweep per

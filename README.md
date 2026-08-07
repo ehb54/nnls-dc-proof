@@ -10,8 +10,10 @@ is not exact.
 
 - `nnls_dc_equivalence.md` — self-contained proof note (superset of the
   paper's math, with extended remarks).
-- `verify.py` — assertion-based verification: counterexample, 160
-  randomized trials, per-node monotonicity checks, KKT certificates.
+- `verify.py` — assertion-based verification: counterexample, 200
+  randomized trials, per-edge monotonicity checks at every merge node,
+  both KKT residuals (pricing and complementarity) asserted at
+  termination.
 - `experiments.py` — paper driver: reruns the suites (same seed/draw
   order as verify.py), prints the LaTeX table rows, renders
   `paper/figs/convergence.{pdf,png}`.
@@ -22,9 +24,10 @@ is not exact.
 
 ## Environment
 
-Python needs numpy/scipy/matplotlib:
+Python needs numpy/scipy/matplotlib (tested versions pinned in
+`requirements.txt`):
 
-    python3 -m venv venv && venv/bin/pip install numpy scipy matplotlib
+    python3 -m venv venv && venv/bin/pip install -r requirements.txt
     venv/bin/python verify.py
     venv/bin/python experiments.py
 

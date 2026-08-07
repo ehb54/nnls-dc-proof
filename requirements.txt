@@ -1,0 +1,5 @@
+# Versions used for the results reported in the manuscript
+# (Python 3.13; later versions are expected to work but are untested).
+numpy==2.5.1
+scipy==1.18.0
+matplotlib==3.11.1
