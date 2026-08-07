@@ -28,7 +28,9 @@ Python needs numpy/scipy/matplotlib:
     venv/bin/python verify.py
     venv/bin/python experiments.py
 
-Seed 20260807 reproduces all numbers in the paper's Table 1.
+Seeds 20260807 (suites i, iii, iv) and 20260808 (interlaced-lattice
+suite) reproduce all numbers in the paper's Table 1. Values printed by
+the code are unhalved squared residual norms ||Ax-b||^2 = 2F.
 
 ## License
 
@@ -38,9 +40,10 @@ released under the MIT License (see `LICENSE`). The manuscript text
 `nnls_dc_equivalence.md`) is (c) 2026 Emre H. Brookes, all rights
 reserved pending journal publication.
 
-## Submission TODOs (flagged in main.tex/refs.bib)
+## Submission TODOs
 
-- Verify page range of the Demeler 2005 RSC chapter citation.
 - Retarget to Springer Nature `sn-jnl.cls` at submission.
 - When finalized: archive a tagged release via Zenodo for a citable DOI
   (deliberately not created yet).
+- Optional strengthening: replace the Gaussian-kernel surrogates with
+  real Lamm-equation (ASTFEM) design matrices exported from UltraScan.
