@@ -30,9 +30,17 @@ Python needs numpy/scipy/matplotlib:
 
 Seed 20260807 reproduces all numbers in the paper's Table 1.
 
+## License
+
+The scripts (`verify.py`, `experiments.py`, `paper/Makefile`) are
+released under the MIT License (see `LICENSE`). The manuscript text
+(`paper/main.tex`, `paper/refs.bib`, the figures, and
+`nnls_dc_equivalence.md`) is (c) 2026 Emre H. Brookes, all rights
+reserved pending journal publication.
+
 ## Submission TODOs (flagged in main.tex/refs.bib)
 
 - Verify page range of the Demeler 2005 RSC chapter citation.
 - Retarget to Springer Nature `sn-jnl.cls` at submission.
-- Optional: add a LICENSE (scripts) and archive a release via Zenodo for
-  a citable DOI.
+- When finalized: archive a tagged release via Zenodo for a citable DOI
+  (deliberately not created yet).
