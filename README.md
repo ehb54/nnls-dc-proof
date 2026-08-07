@@ -33,8 +33,6 @@ Seed 20260807 reproduces all numbers in the paper's Table 1.
 ## Submission TODOs (flagged in main.tex/refs.bib)
 
 - Verify page range of the Demeler 2005 RSC chapter citation.
-- Acknowledgments: confirm AI-assistance disclosure wording (funding
-  R01 GM120600 added 2026-08-07).
 - Retarget to Springer Nature `sn-jnl.cls` at submission.
 - Optional: add a LICENSE (scripts) and archive a release via Zenodo for
   a citable DOI.
