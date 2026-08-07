@@ -16,6 +16,9 @@ import os
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+# Embed TrueType (Type 42) fonts, not Type 3, per journal requirements.
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
 import matplotlib.pyplot as plt
 
 from verify import (nnls_on, ssr, kkt_residuals, dc_nnls,

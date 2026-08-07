@@ -11,6 +11,8 @@
 \usepackage{algorithm}
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
+\usepackage{flafter}   % floats never appear before their source position
+\usepackage{needspace} % keep theorem statements off page bottoms
 
 \theoremstyle{thmstyleone}
 \newtheorem{theorem}{Theorem}
@@ -33,10 +35,12 @@
 \title[Exact iterated divide-and-conquer NNLS]{Exactness of an iterated
 divide-and-conquer method for large-scale nonnegative least squares}
 
-% ORCID 0000-0001-7348-6476 (entered in Editorial Manager metadata).
-\author*[1]{\fnm{Emre H.} \sur{Brookes}}\email{emre.brookes@umontana.edu}
+% ORCID via the class's native \orcid (icon: Orcidlogo.eps).
+\author*[1]{\fnm{Emre H.}
+\sur{Brookes}\,\orcid{https://orcid.org/0000-0001-7348-6476}}%
+\email{emre.brookes@umontana.edu}
 
-\affil*[1]{\orgdiv{Department of Chemistry \& Biochemistry},
+\affil[1]{\orgdiv{Department of Chemistry \& Biochemistry},
 \orgname{University of Montana}, \orgaddress{\city{Missoula},
 \state{Montana}, \country{USA}}}
 
@@ -413,6 +417,7 @@ Lemma~\ref{lem:strict} together with the same sandwich; an unchanged
 result implies an unchanged value.
 \end{proof}
 
+\Needspace{10\baselineskip}
 \begin{theorem}[equivalence of outputs]\label{thm:outputs}
 Let $x_\infty$ be the terminal iterate of Algorithm~\ref{alg:iter} and
 let $x^*$ be any minimizer of $\prob{S}$. Then, unconditionally,
@@ -538,7 +543,7 @@ any $p\in K_S$,
 $\lVert p-b\rVert^2\ge\lVert Ax^*-b\rVert^2+\lVert p-Ax^*\rVert^2$;
 take $p=Ax$.
 \end{proof}
-
+\par\medskip\noindent
 An exact solve of $\prob{C}$ has $\varepsilon=0$ by complementarity,
 and in the experiments of Section~\ref{sec:numerics} the
 floating-point active-set solves delivered $\varepsilon$ near the
@@ -636,7 +641,7 @@ duplicated columns & 40 & 2/4/9 & $9.5\times10^{-17}$
 smooth-kernel trials (light curves; dark curve with markers: per-round
 median, with each trial's terminal value carried forward after it
 terminates), clipped at $10^{-16}$ for display. (b) Rounds to
-termination across all 200 trials.}
+termination across all 200 trials}
 \label{fig:convergence}
 \end{figure}
 
