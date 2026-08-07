@@ -42,7 +42,8 @@ reserved pending journal publication.
 
 ## Submission TODOs
 
-- Retarget to Springer Nature `sn-jnl.cls` at submission.
+- Retarget to Springer Nature `sn-jnl.cls` at submission; render DOIs
+  as full https://doi.org/... links per the OL guidelines.
 - When finalized: archive a tagged release via Zenodo for a citable DOI
   (deliberately not created yet).
 - Optional strengthening: replace the Gaussian-kernel surrogates with

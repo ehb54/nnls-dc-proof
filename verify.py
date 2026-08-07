@@ -31,7 +31,11 @@ Checks performed here:
      point satisfies the full-problem KKT conditions.
   3. Randomized trials verifying, at termination:
         value(dc) == value(full NNLS)   (to numerical tolerance)
-        max_j a_j^T (b - A x_dc) <= tol (direct global KKT certificate)
+        BOTH KKT residuals of the manuscript's Proposition 2:
+          delta = max(0, max_j a_j^T r)   (pricing)
+          eps   = max(0, -(A^T r)^T x)    (complementarity)
+        Note pricing alone is NOT sufficient for optimality (A=I, b=1,
+        x=2 has a_j^T r <= 0 but is not optimal); both are asserted.
   4. Genuine per-edge monotonicity: at EVERY merge node the parent value is
      asserted <= the minimum of its children's values (Lemma "tree descent"),
      and each round's value is asserted <= the previous round's value
@@ -66,10 +70,17 @@ def ssr(A, b, x):
     return float(r @ r)
 
 
-def kkt_violation(A, b, x):
-    """max_j a_j^T (b - A x).  <= 0 (up to roundoff) iff x is a global
-    solution of the FULL problem (KKT / pricing test)."""
-    return float(np.max(A.T @ (b - A @ x)))
+def kkt_residuals(A, b, x):
+    """Both KKT residuals of the full problem at x:
+        delta = max(0, max_j a_j^T r)   (pricing residual)
+        eps   = max(0, -(A^T r)^T x)    (complementarity residual)
+    x >= 0 is a global solution iff delta = eps = 0 (up to roundoff).
+    Pricing alone is not sufficient: A=I, b=1, x=2 has delta = 0 but
+    eps = 1 and is not optimal."""
+    g = A.T @ (b - A @ x)
+    delta = max(0.0, float(np.max(g)))
+    eps = max(0.0, float(-(g @ x)))
+    return delta, eps
 
 
 # ------------------------------------------------------------------ algorithm
@@ -164,7 +175,7 @@ def counterexample():
 
     x1, R1, vals1, _ = dc_nnls(A, b, nblocks=2, iterative=False)
     v1 = vals1[-1]
-    viol1 = kkt_violation(A, b, x1)
+    viol1, _ = kkt_residuals(A, b, x1)
 
     xi, Ri, valsi, reason = dc_nnls(A, b, nblocks=2, iterative=True)
     vi = valsi[-1]
@@ -257,7 +268,8 @@ def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
     sp_gaps = []
     reasons = {}
     worst_val_err = 0.0
-    worst_kkt = -np.inf
+    worst_delta = -np.inf
+    worst_eps = -np.inf
     for trial in range(n_trials):
         A, b = maker(rng)
         scale = max(1.0, float(np.max(np.abs(A.T @ b))))
@@ -276,20 +288,25 @@ def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
                                      iterative=True, fan_in=fi)
         v = vals[-1]
         val_err = abs(v - v_full) / max(1.0, v_full)
-        kkt = kkt_violation(A, b, x) / scale
+        delta, eps = kkt_residuals(A, b, x)
+        delta_s = delta / scale
+        eps_s = eps / max(1.0, v_full)
         worst_val_err = max(worst_val_err, val_err)
-        worst_kkt = max(worst_kkt, kkt)
+        worst_delta = max(worst_delta, delta_s)
+        worst_eps = max(worst_eps, eps_s)
         rounds_hist.append(len(vals))
         reasons[reason] = reasons.get(reason, 0) + 1
         assert val_err < 1e-7, (name, trial, v, v_full)
-        assert kkt < 1e-7, (name, trial, kkt)
+        assert delta_s < 1e-7, (name, trial, delta_s)
+        assert eps_s < 1e-7, (name, trial, eps_s)
     sp_gaps = np.array(sp_gaps)
     print(f"== {name}: {n_trials} trials ==")
     print(f"  rounds to termination: min {min(rounds_hist)}, "
           f"median {int(np.median(rounds_hist))}, max {max(rounds_hist)}")
     print(f"  stopping reasons: {reasons}")
     print(f"  worst |value(dc) - value(full)| (rel): {worst_val_err:.3e}")
-    print(f"  worst scaled KKT violation at termination: {worst_kkt:.3e}")
+    print(f"  worst scaled pricing residual delta: {worst_delta:.3e}")
+    print(f"  worst scaled complementarity residual eps: {worst_eps:.3e}")
     print(f"  single-pass suboptimal (excess > 1e-8 rel): "
           f"{int(np.sum(sp_gaps > 1e-8))}/{n_trials}")
     print("  PASS: iterative D&C matched full NNLS in every trial.\n")

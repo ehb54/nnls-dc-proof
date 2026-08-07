@@ -18,7 +18,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from verify import (nnls_on, ssr, kkt_violation, dc_nnls,
+from verify import (nnls_on, ssr, kkt_residuals, dc_nnls,
                     make_smooth_instance, make_gaussian_instance,
                     make_duplicate_instance, make_lattice_instance,
                     interlaced_blocks)
@@ -52,13 +52,15 @@ def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
         x, _, vals, reason = dc_nnls(A, b, nblocks=nb, blocks=blocks,
                                      iterative=True, fan_in=fi)
         reasons[reason] = reasons.get(reason, 0) + 1
+        delta, eps = kkt_residuals(A, b, x)
         recs.append({
             "v_full": v_full,
             "v_sp": vals_sp[-1],
             "vals": vals,
             "rounds": len(vals),
             "val_err": abs(vals[-1] - v_full) / max(1.0, v_full),
-            "kkt": kkt_violation(A, b, x) / scale,
+            "delta": delta / scale,
+            "eps": eps / max(1.0, v_full),
             "sp_subopt": vals_sp[-1] - v_full > 1e-9 * (1.0 + v_full),
         })
     print(f"[{name}] {n_trials} trials done; stopping reasons: {reasons}")
@@ -76,11 +78,12 @@ def fmt_sci(x):
 def latex_row(name, recs):
     rounds = [r["rounds"] for r in recs]
     worst_err = max(r["val_err"] for r in recs)
-    worst_kkt = max(r["kkt"] for r in recs)
+    worst_delta = max(r["delta"] for r in recs)
+    worst_eps = max(r["eps"] for r in recs)
     n_sub = sum(r["sp_subopt"] for r in recs)
     return (f"{name} & {len(recs)} & {min(rounds)}/{int(np.median(rounds))}/"
-            f"{max(rounds)} & {fmt_sci(worst_err)} & {fmt_sci(worst_kkt)} & "
-            f"{n_sub}/{len(recs)} \\\\")
+            f"{max(rounds)} & {fmt_sci(worst_err)} & {fmt_sci(worst_delta)} & "
+            f"{fmt_sci(worst_eps)} & {n_sub}/{len(recs)} \\\\")
 
 
 def make_figure(smooth, all_recs):

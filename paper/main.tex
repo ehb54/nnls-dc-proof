@@ -135,9 +135,10 @@ amplitude vector itself coincides under a standard uniqueness condition
 scheme can return a residual larger than the optimum by a constant
 factor of the signal, so the feedback rounds are necessary rather than
 cosmetic (Proposition~\ref{prop:counter});
-\item[(iv)] a suboptimality bound of $\delta\lVert x^*\rVert_1$ when the
-pricing test is satisfied only to tolerance $\delta$
-(Proposition~\ref{prop:inexact}); and
+\item[(iv)] a suboptimality bound of
+$\delta\lVert x^*\rVert_1+\varepsilon$ under inexact pricing
+(tolerance $\delta$) and inexact complementarity (tolerance
+$\varepsilon$) (Proposition~\ref{prop:inexact}); and
 \item[(v)] numerical confirmation on correlated designs representative
 of the motivating application, including per-node verification of every
 monotonicity inequality used in the proof (Section~\ref{sec:numerics}).
@@ -155,9 +156,10 @@ merge-tree structure with changing partitions, an exact finite
 termination argument (the objective values live in a finite set, so
 strict descent cannot continue indefinitely), the certificate soundness
 statement, and the counterexample delimiting the non-iterated scheme.
-Notably, no bound on the working-set size must be imposed: NNLS supports
-returned by active-set solvers are automatically bounded by the rank of
-$A$, which is what keeps the merge stages small in practice.
+Notably, no bound on the working-set size must be imposed: basic
+solutions returned by Lawson--Hanson-type solvers have supports bounded
+by the rank of $A$, which is what keeps the merge stages small in
+practice.
 
 Section~\ref{sec:prelim} fixes notation and collects preliminaries;
 Section~\ref{sec:alg} formalizes the algorithm;
@@ -253,7 +255,13 @@ Round $k$ receives the incumbent result set $R_{k-1}$ (with
 $R_0=\varnothing$) and produces the iterate $x_k$; the round with
 $R_0=\varnothing$ is exactly the basic (non-iterated) scheme of
 \cite[Text~1]{brookes2006}, and the loop of Algorithm~\ref{alg:iter} is
-the iterative variant of \cite[\S3.2]{brookes2006}.
+the iterative variant of \cite[\S3.2]{brookes2006}. The two stopping
+tests in Algorithm~\ref{alg:iter} are consistent: since
+$\supp(x_k)=R_k\subseteq C_k$, Lemma~\ref{lem:restrict}(ii) shows
+$x_k$ solves $\prob{R_k}$, so $R_k=R_{k-1}$ makes $x_k$ and $x_{k-1}$
+minimizers of the same restricted problem and forces $v_k=v_{k-1}$ ---
+the support test implies the value test, and
+Theorem~\ref{thm:main}(b) certifies either.
 
 \begin{algorithm}[t]
 \caption{One round of divide-and-conquer NNLS}\label{alg:round}
@@ -281,7 +289,7 @@ merge tree $\mathcal T$ with $p$ leaves
 \For{$k=1,2,\dots$}
   \State $(x_k,R_k,C_k)\gets$ Algorithm~\ref{alg:round} on $R_{k-1}$
          with the round's partition and tree;\quad $v_k\gets F(x_k)$
-  \If{$k\ge2$ and the result is unchanged (or $v_k=v_{k-1}$)}
+  \If{$k\ge2$ and ($R_k=R_{k-1}$ or $v_k=v_{k-1}$)}
      \State\Return $x_k$ \Comment{certificate; Theorem~\ref{thm:main}}
   \EndIf
 \EndFor
@@ -448,8 +456,8 @@ convex regularization removes the issue altogether
 \begin{proposition}\label{prop:counter}
 There is a problem with $m=3$, $n=4$ and a two-block partition on which
 the non-iterated scheme (Algorithm~\ref{alg:round} with
-$R=\varnothing$) returns the objective value $\tfrac1{24}$ (squared
-residual norm $\tfrac1{12}$) while $v^*=0$; one refinement round
+$R=\varnothing$) returns $F=\tfrac1{24}$, equivalently
+$\lVert r\rVert^2=\tfrac1{12}$, while $v^*=0$; one refinement round
 restores the exact solution.
 \end{proposition}
 \begin{proof}
@@ -537,11 +545,21 @@ An exact solve of $\prob{C}$ has $\varepsilon=0$ by complementarity,
 and a floating-point active-set solve delivers $\varepsilon$ at the
 level of machine roundoff, so Proposition~\ref{prop:inexact} covers
 inexact subproblem solves as well as inexact pricing; $\delta=
-\varepsilon=0$ recovers exactness. In practice the leaves of a
-refinement round already evaluate $a_j^{\T}r$ implicitly for every
-column, so the certified bound can be logged at essentially no
-additional cost: one pricing sweep per round yields a numerical
-optimality gap for the reported fit.
+\varepsilon=0$ recovers exactness. Turning the bound into a per-run
+certificate requires two ingredients. First, an explicit pricing sweep:
+the leaves do not supply one as a by-product, since each leaf prices
+its columns against its own local residual rather than the final merged
+residual $r(x_k)$; one distributed evaluation of $A^{\T}r(x_k)$ is
+required, which needs no additional matrix storage (each block prices
+its own columns against the broadcast residual) and is typically far
+cheaper than the NNLS solves. Second, an upper bound
+$M\ge\lVert x^*\rVert_1$, since $\lVert x^*\rVert_1$ is not otherwise
+known: given both, the computable certificate is
+$F(x)-v^*\le\delta M+\varepsilon$. In the motivating application the
+amplitudes are partial concentrations whose sum reproduces the loading
+concentration, so a physical $M$ is typically available; absent such a
+bound, Proposition~\ref{prop:inexact} should be read as a conditional
+a~posteriori bound.
 
 \section{Numerical illustration}\label{sec:numerics}
 
@@ -550,8 +568,8 @@ Algorithms~\ref{alg:round}--\ref{alg:iter} using the active-set solver
 \texttt{scipy.optimize.nnls}~\cite{virtanen2020} for every subproblem
 and atomic merge trees with fan-in 2 or 4; the scripts, with fixed
 seeds, accompany this note. Values are reported, here and in the
-released code, as squared residual norms $\lVert Ax-b\rVert^2=2F$;
-relative quantities are unaffected by the convention. The
+released code, as squared residual norms $\lVert Ax-b\rVert^2=2F$, and
+the normalized quantities below are defined in that convention. The
 floating-point implementation of Algorithm~\ref{alg:iter} stops when
 the returned support is unchanged or when the objective improves by
 less than a relative tolerance of $10^{-12}$, and records which rule
@@ -571,8 +589,11 @@ exercised. In every trial, the parent--child inequality of
 Lemma~\ref{lem:tree} was asserted at every merge node and the
 inequality of Lemma~\ref{lem:mono} at every round (relative slack
 $10^{-9}$), the terminal value was compared against a full-grid solve,
-and the global conditions \eqref{eq:kkt} were evaluated directly at the
-terminal iterate. The results are summarized in
+and both KKT residuals of Proposition~\ref{prop:inexact} --- the
+pricing residual $\delta=\max(0,\max_j a_j^{\T}r)$ and the
+complementarity residual $\varepsilon=\max(0,-(A^{\T}r)^{\T}x)$, which
+together certify optimality where neither alone does --- were
+evaluated at the terminal iterate. The results are summarized in
 Table~\ref{tab:trials}.
 
 \begin{table}[t]
@@ -581,27 +602,29 @@ Table~\ref{tab:trials}.
 released code). Values are squared residual norms
 $v=\lVert Ax-b\rVert^2$; rounds are counted as in
 Algorithm~\ref{alg:iter}, including the terminating round. The value
-gap is $|v_{\mathrm{dc}}-v^*|/\max(1,v^*)$ against a full-grid solve;
-the pricing residual is $\max_j a_j^{\T}r/\max(1,\lVert A^{\T}b
-\rVert_\infty)$ at termination. A single-pass trial is counted
+gap is $|v_{\mathrm{dc}}-v^*|/\max(1,v^*)$ against a full-grid solve.
+The KKT residuals at termination are reported as
+$\delta/\max(1,\lVert A^{\T}b\rVert_\infty)$ and
+$\varepsilon/\max(1,v^*)$. A single-pass trial is counted
 suboptimal when its value exceeds $v^*$ by more than
 $10^{-9}(1+v^*)$.}
 \label{tab:trials}
-\small
-\begin{tabular}{lccccc}
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lcccccc}
 \toprule
-suite & trials & rounds & worst value gap & worst pricing
-& single pass\\
- & & min/med/max & & residual & suboptimal\\
+suite & trials & rounds & worst value & worst pricing
+& worst compl. & single pass\\
+ & & min/med/max & gap & $\delta$ & $\varepsilon$ & suboptimal\\
 \midrule
 smooth correlated kernels & 60 & 4/6/9 & $2.2\times10^{-16}$
-& $2.5\times10^{-16}$ & 60/60\\
+& $2.5\times10^{-16}$ & $1.1\times10^{-13}$ & 60/60\\
 2-D lattice, interlaced subgrids & 40 & 7/10/13 & $4.4\times10^{-16}$
-& $2.7\times10^{-16}$ & 40/40\\
+& $2.7\times10^{-16}$ & $1.3\times10^{-13}$ & 40/40\\
 i.i.d.\ Gaussian & 60 & 2/3/3 & $3.1\times10^{-28}$
-& $8.8\times10^{-16}$ & 33/60\\
+& $8.8\times10^{-16}$ & $6.0\times10^{-14}$ & 33/60\\
 duplicated columns & 40 & 2/4/9 & $9.5\times10^{-17}$
-& $8.5\times10^{-16}$ & 39/40\\
+& $8.5\times10^{-16}$ & $7.4\times10^{-14}$ & 39/40\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -633,7 +656,8 @@ termination from sufficiently fast asymptotic convergence --- that
 distinction is supplied by the theorem. Third, the non-iterated scheme
 was suboptimal in every trial of both kernel suites: its value exceeded
 the optimum by a median of 18\% (maximum 169\%) under random contiguous
-blocks, and by a median factor of $8.4$ (maximum $59$) under the
+blocks, and by a median relative excess of $8.4$ (maximum $59$) ---
+a typical single-pass value $9.4$ times the optimum --- under the
 interlaced partition, where every subgrid is a coarse copy of the whole
 grid and locally optimal fits are correspondingly misleading; the
 feedback rounds therefore carry the exactness in precisely the regimes
@@ -684,9 +708,12 @@ whole sets into stage groups costs nothing and preserves the
 guarantee; this appears advisable in any implementation. Two further
 practical consequences of the analysis: stopping on an unchanged
 \emph{value} is sound and robust under non-uniqueness
-(Remark~\ref{rem:stopping}), and logging the maximum pricing residual
-per round turns Proposition~\ref{prop:inexact} into a per-run numerical
-optimality certificate at negligible cost.
+(Remark~\ref{rem:stopping}), and one distributed pricing sweep per
+round yields the residuals $\delta$ and $\varepsilon$ of
+Proposition~\ref{prop:inexact}, hence --- given an available bound
+$M\ge\lVert x^*\rVert_1$ --- the computable per-run optimality
+certificate $F(x)-v^*\le\delta M+\varepsilon$, at a cost typically far
+below that of the NNLS solves.
 
 \paragraph{Limitations.}
 The guarantee is stated for exact subproblem solves; floating-point
@@ -742,9 +769,11 @@ arguments and computational results and takes sole responsibility for
 the content of this publication.
 
 \paragraph{Data availability.}
+{\sloppy
 The verification and experiment scripts (Python, using
 \texttt{scipy.optimize.nnls}), together with the \LaTeX\ source of this
 note, are available at \url{https://github.com/ehb54/nnls-dc-proof}.
+\par}
 
 \paragraph{Competing interests.}
 The author declares no competing interests.
