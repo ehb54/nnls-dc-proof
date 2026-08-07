@@ -7,23 +7,35 @@ Application in Biophysics" (SC'06), Text 1 + Section 3.2 iterative variant:
 
     round(R):  for each block S_i of a partition of S, solve NNLS on S_i U R
                (f returns the support = "parameters that contribute");
-               merge the returned supports (union, optionally in stages) and
-               solve NNLS on the union; the final support is the new R.
-    iterate rounds until the result no longer varies (R fixed).
+               merge the returned supports (union, in stages of the given
+               fan-in) and solve NNLS on the union; the final support is
+               the new R.
+    iterate rounds until the result no longer varies.
+
+Conventions.  All values reported by this code are UNHALVED squared residual
+norms  ssr(x) = ||Ax - b||^2  (the manuscript's objective is F = ssr/2;
+relative quantities are unaffected).
+
+Floating-point stopping rule (dc_nnls).  A run terminates when
+  (a) the returned support is unchanged from the previous round
+      ("support_fixed"), or
+  (b) the objective fails to improve by more than a relative tolerance of
+      1e-12 ("value_stall"), or
+  (c) max_rounds is reached ("max_rounds"; never observed).
+The stopping reason is returned with the result.
 
 Checks performed here:
   1. The explicit 4-column counterexample showing a SINGLE pass (R0 = empty,
      no refinement) is NOT equivalent to the full problem.
-  2. That one refinement round repairs the counterexample, and the
-     "results no longer vary" fixed point satisfies the full-problem KKT
-     conditions (global optimality certificate).
-  3. Randomized trials (AUC-like smooth correlated kernels, iid Gaussian,
-     exact duplicate columns) verifying, at the fixed point:
+  2. That one refinement round repairs the counterexample, and the fixed
+     point satisfies the full-problem KKT conditions.
+  3. Randomized trials verifying, at termination:
         value(dc) == value(full NNLS)   (to numerical tolerance)
         max_j a_j^T (b - A x_dc) <= tol (direct global KKT certificate)
-     plus statistics: rounds to convergence, single-pass suboptimality gap.
-  4. Per-round monotonicity of the objective (Lemma: tree descent), and the
-     strict-descent property while KKT violations remain.
+  4. Genuine per-edge monotonicity: at EVERY merge node the parent value is
+     asserted <= the minimum of its children's values (Lemma "tree descent"),
+     and each round's value is asserted <= the previous round's value
+     (Lemma "monotone rounds"), all with relative slack 1e-9.
 """
 
 import numpy as np
@@ -62,66 +74,82 @@ def kkt_violation(A, b, x):
 
 # ------------------------------------------------------------------ algorithm
 
-def dc_round(A, b, blocks, R, fan_in=2):
+def dc_round(A, b, blocks, R, fan_in=2, check=True):
     """One round: leaves S_i U R, then ATOMIC merge tree (unions of whole
-    returned supports, fan-in given), final solve on the last union.
-    Returns (support, solution, diagnostics)."""
-    leaf_vals = []
-    supports = []
+    returned supports, given fan-in), final solve on the root support.
+    With check=True, asserts the parent<=min(children) inequality at every
+    internal node.  Returns (support, solution, diagnostics)."""
+    supports, vals = [], []
     for S in blocks:
         U, y = f_support(A, b, set(S) | set(R))
         supports.append(U)
-        leaf_vals.append(ssr(A, b, y))
+        vals.append(ssr(A, b, y))
+    leaf_vals = list(vals)
     node_vals = []
     while len(supports) > 1:
-        nxt = []
+        nxt_s, nxt_v = [], []
         for i in range(0, len(supports), fan_in):
+            kid_vals = vals[i:i + fan_in]
             C = set().union(*supports[i:i + fan_in])
             U, y = f_support(A, b, C)
-            nxt.append(U)
-            node_vals.append(ssr(A, b, y))
-        supports = nxt
+            v = ssr(A, b, y)
+            if check:
+                assert v <= min(kid_vals) + 1e-9 * (1.0 + abs(v)), \
+                    "tree-descent violated at merge node"
+            nxt_s.append(U)
+            nxt_v.append(v)
+            node_vals.append(v)
+        supports, vals = nxt_s, nxt_v
     U, x = f_support(A, b, supports[0] if supports else set())
     v = ssr(A, b, x)
+    if check and vals:
+        assert v <= min(vals) + 1e-9 * (1.0 + abs(v)), \
+            "tree-descent violated at root"
     return U, x, {"leaf_vals": leaf_vals, "node_vals": node_vals, "v": v}
 
 
-def dc_nnls(A, b, nblocks, iterative=True, fan_in=2, max_rounds=500,
-            check_monotone=True):
-    """Full D&C-NNLS.  iterative=False reproduces the basic Text 1 scheme
-    (single pass, R0 = empty).  Returns (x, support, per-round values)."""
+def dc_nnls(A, b, nblocks=None, blocks=None, iterative=True, fan_in=2,
+            max_rounds=500, check_monotone=True):
+    """Full D&C-NNLS.  Pass either nblocks (contiguous index blocks) or an
+    explicit `blocks` partition (list of index lists, e.g. interlaced
+    subgrids).  iterative=False reproduces the basic Text 1 scheme.
+    Returns (x, support, per-round values, stopping reason)."""
     n = A.shape[1]
-    blocks = [list(B) for B in np.array_split(np.arange(n), nblocks)]
+    if blocks is None:
+        blocks = [list(B) for B in np.array_split(np.arange(n), nblocks)]
     R, x = set(), np.zeros(n)
     vals = []
-    for k in range(max_rounds):
-        R_new, x_new, diag = dc_round(A, b, blocks, R, fan_in=fan_in)
+    reason = "max_rounds"
+    for _ in range(max_rounds):
+        R_new, x_new, diag = dc_round(A, b, blocks, R, fan_in=fan_in,
+                                      check=check_monotone)
         v_new = diag["v"]
-        if check_monotone:
-            # Lemma (tree descent): root value <= every leaf/internal value.
-            slack = 1e-9 * (1.0 + abs(v_new))
-            assert all(v_new <= lv + slack
-                       for lv in diag["leaf_vals"] + diag["node_vals"]), \
-                "tree-descent monotonicity violated"
-            # Incumbent feasibility: round value cannot exceed previous value.
-            if vals:
-                assert v_new <= vals[-1] + 1e-9 * (1.0 + abs(vals[-1])), \
-                    "round-to-round monotonicity violated"
+        if check_monotone and vals:
+            assert v_new <= vals[-1] + 1e-9 * (1.0 + abs(vals[-1])), \
+                "round-to-round monotonicity violated"
         vals.append(v_new)
         stalled = len(vals) >= 2 and \
             vals[-1] >= vals[-2] - 1e-12 * max(1.0, abs(vals[-2]))
         fixed = (R_new == R)
         R, x = R_new, x_new
-        if not iterative or fixed or stalled:
+        if not iterative:
+            reason = "single_pass"
             break
-    return x, R, vals
+        if fixed:
+            reason = "support_fixed"
+            break
+        if stalled:
+            reason = "value_stall"
+            break
+    return x, R, vals, reason
 
 
 # --------------------------------------------------------------- experiments
 
 def counterexample():
     """4 columns in R^3, blocks {a1,a2} and {a3,a4}: the single pass discards
-    a2 and a4, which the exact solution needs."""
+    a2 and a4, which the exact solution needs.  Values printed are unhalved
+    SSR; the manuscript's objective F is SSR/2 (so F = 1/24 here)."""
     s = 1.0 / np.sqrt(2.0)
     # rows are (x, y, z) components: a1=(1,0,1)/sqrt2, a2=e1, a3=(0,1,1)/sqrt2, a4=e2
     A = np.array([
@@ -134,21 +162,21 @@ def counterexample():
     x_full = nnls_on(A, b, range(4))
     v_full = ssr(A, b, x_full)
 
-    x1, R1, vals1 = dc_nnls(A, b, nblocks=2, iterative=False)
+    x1, R1, vals1, _ = dc_nnls(A, b, nblocks=2, iterative=False)
     v1 = vals1[-1]
     viol1 = kkt_violation(A, b, x1)
 
-    xi, Ri, valsi = dc_nnls(A, b, nblocks=2, iterative=True)
+    xi, Ri, valsi, reason = dc_nnls(A, b, nblocks=2, iterative=True)
     vi = valsi[-1]
 
     print("== Counterexample (single pass vs full) ==")
     print(f"  full NNLS        : SSR = {v_full:.12f}")
     print(f"  single-pass D&C  : SSR = {v1:.12f}   support = {sorted(R1)}"
-          f"   (exact value 1/12 = {1/12:.12f})")
+          f"   (exact SSR 1/12 = {1/12:.12f}; objective F = SSR/2 = 1/24)")
     print(f"  KKT violation at single-pass solution: max_j a_j'r = "
           f"{viol1:.12f}  (exact value 1/6 = {1/6:.12f}; >0 => not optimal)")
     print(f"  iterative D&C    : SSR = {vi:.12f}   rounds = {len(valsi)}  "
-          f"per-round SSR = {[f'{v:.6g}' for v in valsi]}")
+          f"stop = {reason}  per-round SSR = {[f'{v:.6g}' for v in valsi]}")
     assert v_full < 1e-24
     assert abs(v1 - 1.0 / 12.0) < 1e-12
     assert abs(viol1 - 1.0 / 6.0) < 1e-12
@@ -190,10 +218,44 @@ def make_duplicate_instance(rng, m=30, n=120):
     return A, b
 
 
+# 2-D lattice surrogate of a 2DSA grid, with interlaced subgrid partition
+# (every stride_c-th center index crossed with every stride_w-th width index),
+# mirroring the moving-grid partitioning of the SC'06 paper.
+LAT_NC, LAT_NW = 20, 12          # lattice: 20 centers x 12 widths = 240 cols
+LAT_SC, LAT_SW = 4, 2            # strides -> 8 interlaced subgrids
+
+
+def make_lattice_instance(rng, m=80, k_true=8, noise=0.02):
+    t = np.linspace(0.0, 1.0, m)
+    centers = np.linspace(0.05, 0.95, LAT_NC)
+    widths = np.geomspace(0.02, 0.15, LAT_NW)
+    cc, ww = np.meshgrid(centers, widths, indexing="ij")  # lexicographic
+    cc, ww = cc.ravel(), ww.ravel()
+    A = np.exp(-0.5 * ((t[:, None] - cc[None, :]) / ww[None, :]) ** 2)
+    n = A.shape[1]
+    x_true = np.zeros(n)
+    idx = rng.choice(n, size=k_true, replace=False)
+    x_true[idx] = rng.uniform(0.5, 2.0, k_true)
+    b = A @ x_true + noise * rng.standard_normal(m)
+    return A, b
+
+
+def interlaced_blocks():
+    """Partition of the lattice into LAT_SC*LAT_SW interlaced subgrids."""
+    blocks = []
+    for a in range(LAT_SC):
+        for c in range(LAT_SW):
+            blocks.append([i * LAT_NW + j
+                           for i in range(a, LAT_NC, LAT_SC)
+                           for j in range(c, LAT_NW, LAT_SW)])
+    return blocks
+
+
 def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
-               fan_in_choices=(2, 4)):
+               fan_in_choices=(2, 4), blocks_fn=None):
     rounds_hist = []
     sp_gaps = []
+    reasons = {}
     worst_val_err = 0.0
     worst_kkt = -np.inf
     for trial in range(n_trials):
@@ -202,30 +264,34 @@ def run_trials(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
         x_full = nnls_on(A, b, range(A.shape[1]))
         v_full = ssr(A, b, x_full)
 
-        nb = int(rng.choice(nblocks_choices))
+        blocks = blocks_fn() if blocks_fn else None
+        nb = None if blocks else int(rng.choice(nblocks_choices))
         fi = int(rng.choice(fan_in_choices))
 
-        x1, _, vals1 = dc_nnls(A, b, nblocks=nb, iterative=False, fan_in=fi)
+        _, _, vals1, _ = dc_nnls(A, b, nblocks=nb, blocks=blocks,
+                                 iterative=False, fan_in=fi)
         sp_gaps.append((vals1[-1] - v_full) / max(v_full, 1e-30))
 
-        x, R, vals = dc_nnls(A, b, nblocks=nb, iterative=True, fan_in=fi)
+        x, R, vals, reason = dc_nnls(A, b, nblocks=nb, blocks=blocks,
+                                     iterative=True, fan_in=fi)
         v = vals[-1]
         val_err = abs(v - v_full) / max(1.0, v_full)
         kkt = kkt_violation(A, b, x) / scale
         worst_val_err = max(worst_val_err, val_err)
         worst_kkt = max(worst_kkt, kkt)
         rounds_hist.append(len(vals))
+        reasons[reason] = reasons.get(reason, 0) + 1
         assert val_err < 1e-7, (name, trial, v, v_full)
         assert kkt < 1e-7, (name, trial, kkt)
     sp_gaps = np.array(sp_gaps)
     print(f"== {name}: {n_trials} trials ==")
-    print(f"  rounds to fixed point: min {min(rounds_hist)}, "
+    print(f"  rounds to termination: min {min(rounds_hist)}, "
           f"median {int(np.median(rounds_hist))}, max {max(rounds_hist)}")
+    print(f"  stopping reasons: {reasons}")
     print(f"  worst |value(dc) - value(full)| (rel): {worst_val_err:.3e}")
-    print(f"  worst scaled KKT violation at fixed point: {worst_kkt:.3e}")
-    print(f"  single-pass relative SSR excess: median {np.median(sp_gaps):.3e},"
-          f" max {np.max(sp_gaps):.3e}, fraction >1e-8: "
-          f"{np.mean(sp_gaps > 1e-8):.2f}")
+    print(f"  worst scaled KKT violation at termination: {worst_kkt:.3e}")
+    print(f"  single-pass suboptimal (excess > 1e-8 rel): "
+          f"{int(np.sum(sp_gaps > 1e-8))}/{n_trials}")
     print("  PASS: iterative D&C matched full NNLS in every trial.\n")
 
 
@@ -237,6 +303,9 @@ def main():
     run_trials("iid Gaussian designs", make_gaussian_instance, 60, rng)
     run_trials("exact duplicate columns (non-unique optima)",
                make_duplicate_instance, 40, rng)
+    rng2 = np.random.default_rng(20260808)
+    run_trials("2-D lattice, interlaced subgrid partition",
+               make_lattice_instance, 40, rng2, blocks_fn=interlaced_blocks)
     print("All checks passed.")
 
 

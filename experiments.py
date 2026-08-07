@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Paper driver: runs the three randomized suites (same seed and draw order as
-verify.py, so numbers match), prints a LaTeX-ready summary table, and renders
-the manuscript figure (per-round descent + rounds-to-certificate histogram).
+"""Paper driver: runs the four randomized suites (the first three with the
+same seed and draw order as verify.py, the lattice suite with its own seed),
+prints a LaTeX-ready summary table, and renders the manuscript figure.
+
+Conventions: values are unhalved squared residual norms ||Ax-b||^2 = 2F,
+matching verify.py; all relative quantities are convention-independent.
 
 Outputs:
   paper/figs/convergence.pdf  (vector, for LaTeX)
@@ -17,7 +20,8 @@ import matplotlib.pyplot as plt
 
 from verify import (nnls_on, ssr, kkt_violation, dc_nnls,
                     make_smooth_instance, make_gaussian_instance,
-                    make_duplicate_instance)
+                    make_duplicate_instance, make_lattice_instance,
+                    interlaced_blocks)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIGDIR = os.path.join(HERE, "paper", "figs")
@@ -31,18 +35,23 @@ GRID = "#D9D9D9"        # recessive grid
 
 
 def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
-              fan_in_choices=(2, 4)):
+              fan_in_choices=(2, 4), blocks_fn=None):
     """Mirrors verify.run_trials draw order exactly; returns per-trial records."""
     recs = []
+    reasons = {}
     for _ in range(n_trials):
         A, b = maker(rng)
         scale = max(1.0, float(np.max(np.abs(A.T @ b))))
         x_full = nnls_on(A, b, range(A.shape[1]))
         v_full = ssr(A, b, x_full)
-        nb = int(rng.choice(nblocks_choices))
+        blocks = blocks_fn() if blocks_fn else None
+        nb = None if blocks else int(rng.choice(nblocks_choices))
         fi = int(rng.choice(fan_in_choices))
-        _, _, vals_sp = dc_nnls(A, b, nblocks=nb, iterative=False, fan_in=fi)
-        x, _, vals = dc_nnls(A, b, nblocks=nb, iterative=True, fan_in=fi)
+        _, _, vals_sp, _ = dc_nnls(A, b, nblocks=nb, blocks=blocks,
+                                   iterative=False, fan_in=fi)
+        x, _, vals, reason = dc_nnls(A, b, nblocks=nb, blocks=blocks,
+                                     iterative=True, fan_in=fi)
+        reasons[reason] = reasons.get(reason, 0) + 1
         recs.append({
             "v_full": v_full,
             "v_sp": vals_sp[-1],
@@ -52,7 +61,7 @@ def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
             "kkt": kkt_violation(A, b, x) / scale,
             "sp_subopt": vals_sp[-1] - v_full > 1e-9 * (1.0 + v_full),
         })
-    print(f"[{name}] {n_trials} trials done")
+    print(f"[{name}] {n_trials} trials done; stopping reasons: {reasons}")
     return recs
 
 
@@ -78,21 +87,20 @@ def make_figure(smooth, all_recs):
     os.makedirs(FIGDIR, exist_ok=True)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.6, 2.7))
 
-    # Panel (a): relative excess SSR per round, smooth-kernel suite
+    # Panel (a): relative excess SSR per round, smooth-kernel suite.
+    # After a trial terminates, its terminal value is carried forward so the
+    # per-round median is over all trials at every round.
     floor = 1e-16
-    med_len = int(np.median([r["rounds"] for r in smooth]))
+    max_r = max(r["rounds"] for r in smooth)
+    curves = []
     for r in smooth:
         v_star = r["v_full"]
         y = [max((v - v_star) / v_star, floor) for v in r["vals"]]
+        y = y + [y[-1]] * (max_r - len(y))  # carry terminal value forward
+        curves.append(y)
         ax1.plot(range(1, len(y) + 1), y, color=BLUE, alpha=0.30, lw=1.0,
                  solid_capstyle="round", zorder=2)
-    # median trajectory across trials (per-round median of available values)
-    max_r = max(r["rounds"] for r in smooth)
-    med = []
-    for k in range(max_r):
-        vs = [max((r["vals"][k] - r["v_full"]) / r["v_full"], floor)
-              for r in smooth if len(r["vals"]) > k]
-        med.append(np.median(vs))
+    med = np.median(np.array(curves), axis=0)
     ax1.plot(range(1, max_r + 1), med, color=BLUE_DARK, lw=2.0, marker="o",
              ms=3.5, zorder=3, label="median")
     ax1.set_yscale("log")
@@ -102,7 +110,7 @@ def make_figure(smooth, all_recs):
     ax1.annotate("round 1 = non-iterated scheme", xy=(1, med[0]),
                  xytext=(1.55, med[0] * 2.4), fontsize=7.5, color=MUTED,
                  arrowprops=dict(arrowstyle="-", color=MUTED, lw=0.7))
-    ax1.annotate("certificate floor", xy=(med_len, 2 * floor),
+    ax1.annotate("roundoff floor", xy=(int(np.median([r['rounds'] for r in smooth])), 2 * floor),
                  xytext=(2.1, 8 * floor), fontsize=7.5, color=MUTED)
     ax1.set_xticks(range(1, max_r + 1))
 
@@ -112,8 +120,8 @@ def make_figure(smooth, all_recs):
     ax2.hist(rounds_all, bins=bins, color=BLUE, edgecolor="white", lw=1.5)
     ax2.set_xlabel("rounds to termination", fontsize=9, color=INK)
     ax2.set_ylabel("trials", fontsize=9, color=INK)
-    ax2.set_title("(b) rounds to certificate (all 160 trials)", fontsize=9,
-                  color=INK)
+    ax2.set_title(f"(b) rounds to termination (all {len(all_recs)} trials)",
+                  fontsize=9, color=INK)
     ax2.set_xticks(range(min(rounds_all), max(rounds_all) + 1))
 
     for ax in (ax1, ax2):
@@ -134,9 +142,13 @@ def main():
     smooth = run_suite("smooth", make_smooth_instance, 60, rng)
     gauss = run_suite("gaussian", make_gaussian_instance, 60, rng)
     dup = run_suite("duplicate", make_duplicate_instance, 40, rng)
+    rng2 = np.random.default_rng(20260808)
+    lattice = run_suite("lattice-interlaced", make_lattice_instance, 40, rng2,
+                        blocks_fn=interlaced_blocks)
 
     print("\n--- LaTeX table rows ---")
     print(latex_row("smooth correlated kernels", smooth))
+    print(latex_row("2-D lattice, interlaced subgrids", lattice))
     print(latex_row("i.i.d.\\ Gaussian", gauss))
     print(latex_row("duplicated columns", dup))
 
@@ -144,7 +156,11 @@ def main():
     print(f"\nsmooth suite: single-pass relative excess median "
           f"{np.median(sp):.3f}, max {np.max(sp):.3f}; "
           f"suboptimal in {sum(r['sp_subopt'] for r in smooth)}/60")
-    make_figure(smooth, smooth + gauss + dup)
+    spl = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in lattice])
+    print(f"lattice suite: single-pass relative excess median "
+          f"{np.median(spl):.3f}, max {np.max(spl):.3f}; "
+          f"suboptimal in {sum(r['sp_subopt'] for r in lattice)}/40")
+    make_figure(smooth, smooth + gauss + dup + lattice)
 
 
 if __name__ == "__main__":
