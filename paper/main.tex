@@ -14,6 +14,12 @@
 \usepackage{flafter}   % floats never appear before their source position
 \usepackage{needspace} % keep theorem statements off page bottoms
 
+\hypersetup{
+  pdftitle={Exactness of an iterated divide-and-conquer method for
+            large-scale nonnegative least squares},
+  pdfauthor={Emre H. Brookes},
+}
+
 \theoremstyle{thmstyleone}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
@@ -257,7 +263,8 @@ Round $k$ receives the incumbent result set $R_{k-1}$ (with
 $R_0=\varnothing$) and produces the iterate $x_k$; the round with
 $R_0=\varnothing$ is exactly the basic (non-iterated) scheme of
 \cite[Text~1]{brookes2006}, and the loop of Algorithm~\ref{alg:iter} is
-the iterative variant of \cite[\S3.2]{brookes2006}. The two stopping
+the iterative variant of \cite[Section~3.2]{brookes2006}. The two
+stopping
 tests in Algorithm~\ref{alg:iter} are consistent: since
 $\supp(x_k)=R_k\subseteq C_k$, Lemma~\ref{lem:restrict}(ii) shows
 $x_k$ solves $\prob{R_k}$, so $R_k=R_{k-1}$ makes $x_k$ and $x_{k-1}$
@@ -703,7 +710,8 @@ The analysis identifies one implementation pattern as load-bearing.
 Condition (H3) requires merges to union whole returned sets; a
 multistage combining phase that re-partitions the unioned results into
 fixed-size chunks --- a natural memory-management choice, and one
-compatible with the description in \cite[\S4.1]{brookes2006} --- can
+compatible with the description in \cite[Section~4.1]{brookes2006} ---
+can
 split a returned support across chunks, in which case
 Lemma~\ref{lem:tree} no longer applies and a round can in principle lose
 ground, taking the certificate's soundness proof with it. Since
