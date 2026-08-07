@@ -64,7 +64,8 @@ always coincide with those of the full computation; the solution itself
 coincides under a standard uniqueness condition. A four-column
 counterexample shows that the non-iterated scheme can be suboptimal by a
 constant factor of the signal, so the feedback rounds are necessary.
-Suboptimality under inexact pricing is bounded, and the analysis is
+Suboptimality under inexact solves and pricing is bounded, and the
+analysis is
 confirmed numerically on correlated designs representative of the
 motivating application.
 \end{abstract}
@@ -165,7 +166,7 @@ Section~\ref{sec:prelim} fixes notation and collects preliminaries;
 Section~\ref{sec:alg} formalizes the algorithm;
 Section~\ref{sec:main} proves the main results;
 Section~\ref{sec:counter} gives the counterexample;
-Section~\ref{sec:inexact} treats inexact pricing;
+Section~\ref{sec:inexact} treats inexact solves and pricing;
 Section~\ref{sec:numerics} reports the numerical checks; and
 Section~\ref{sec:discussion} discusses implementation guidance,
 limitations, and extensions.
@@ -542,10 +543,11 @@ take $p=Ax$.
 \end{proof}
 
 An exact solve of $\prob{C}$ has $\varepsilon=0$ by complementarity,
-and a floating-point active-set solve delivers $\varepsilon$ at the
-level of machine roundoff, so Proposition~\ref{prop:inexact} covers
-inexact subproblem solves as well as inexact pricing; $\delta=
-\varepsilon=0$ recovers exactness. Turning the bound into a per-run
+and in the experiments of Section~\ref{sec:numerics} the
+floating-point active-set solves delivered $\varepsilon$ near the
+roundoff scale, so Proposition~\ref{prop:inexact} covers inexact
+subproblem solves as well as inexact pricing; $\delta=\varepsilon=0$
+recovers exactness. Turning the bound into a per-run
 certificate requires two ingredients. First, an explicit pricing sweep:
 the leaves do not supply one as a by-product, since each leaf prices
 its columns against its own local residual rather than the final merged
@@ -591,9 +593,10 @@ inequality of Lemma~\ref{lem:mono} at every round (relative slack
 $10^{-9}$), the terminal value was compared against a full-grid solve,
 and both KKT residuals of Proposition~\ref{prop:inexact} --- the
 pricing residual $\delta=\max(0,\max_j a_j^{\T}r)$ and the
-complementarity residual $\varepsilon=\max(0,-(A^{\T}r)^{\T}x)$, which
-together certify optimality where neither alone does --- were
-evaluated at the terminal iterate. The results are summarized in
+complementarity residual $\varepsilon=\max(0,-(A^{\T}r)^{\T}x)$, whose
+simultaneous vanishing certifies optimality and which otherwise enter
+the bound of Proposition~\ref{prop:inexact} --- were evaluated at the
+terminal iterate. The results are summarized in
 Table~\ref{tab:trials}.
 
 \begin{table}[t]
@@ -703,9 +706,11 @@ split a returned support across chunks, in which case
 Lemma~\ref{lem:tree} no longer applies and a round can in principle lose
 ground, taking the certificate's soundness proof with it. Since
 basic-solution solvers return supports with at most
-$\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), packing
-whole sets into stage groups costs nothing and preserves the
-guarantee; this appears advisable in any implementation. Two further
+$\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), a
+fan-in-$q$ merge over whole returned sets contains at most
+$q\operatorname{rank}(A)$ candidate indices, so atomic packing
+preserves the guarantee within the same memory envelope as chunking;
+this appears advisable in any implementation. Two further
 practical consequences of the analysis: stopping on an unchanged
 \emph{value} is sound and robust under non-uniqueness
 (Remark~\ref{rem:stopping}), and one distributed pricing sweep per
