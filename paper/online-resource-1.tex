@@ -1,0 +1,189 @@
+% Online Resource 1 for:
+%   E. H. Brookes, "Exactness of an iterated divide-and-conquer method
+%   for large-scale nonnegative least squares", Optimization Letters.
+% Springer publishes supplementary PDFs as supplied; typeset to match
+% the article (sn-jnl class, sn-mathphys-num style).
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{booktabs}
+
+\raggedbottom
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\Val}{\operatorname{Val}}
+\newcommand{\T}{{\mathsf T}}
+\newcommand{\prob}[1]{\mathrm{P}(#1)}
+
+\hypersetup{
+  pdftitle={Online Resource 1: An intuitive guide to the
+            finite-termination and global-optimality proof},
+  pdfauthor={Emre H. Brookes},
+}
+
+\begin{document}
+
+\title[Online Resource 1]{Online Resource 1:\\ An intuitive guide to
+the finite-termination and global-optimality proof}
+
+\author*[1]{\fnm{Emre H.}
+\sur{Brookes}\,\orcid{https://orcid.org/0000-0001-7348-6476}}%
+\email{emre.brookes@umontana.edu}
+
+\affil[1]{\orgdiv{Department of Chemistry \& Biochemistry},
+\orgname{University of Montana}, \orgaddress{\city{Missoula},
+\state{Montana}, \country{USA}}}
+
+\maketitle
+
+\noindent
+Supplementary material for \emph{Exactness of an iterated
+divide-and-conquer method for large-scale nonnegative least squares}
+(Optimization Letters). This guide is explanatory and restates the
+termination argument geometrically, in the language of the motivating
+application; the article's numbered results and formal proofs are
+authoritative, and are cited here by their numbers.
+
+\section*{1\quad The physical picture}
+
+The measured data form a vector $b$. Each column $a_j$ of the matrix
+$A$ is the predicted signal of one candidate physical component ---
+in sedimentation velocity analysis, one candidate solute. We seek
+nonnegative amplitudes $x_j$ (concentrations cannot be negative) so
+that $Ax\approx b$, and we measure misfit by
+\begin{equation*}
+F(x)=\tfrac12\lVert Ax-b\rVert^2 .
+\end{equation*}
+The \emph{residual}
+\begin{equation*}
+r=b-Ax
+\end{equation*}
+is the part of the experiment not yet explained by the current fit,
+and the \emph{support} of $x$ is the set of components with positive
+amplitude.
+
+Because the full matrix may not fit on one computer, the
+divide-and-conquer method of the article (Algorithms~1--2) proceeds in
+rounds: divide the columns into blocks; solve NNLS separately in each
+block; keep each block's nonzero components; merge the survivors and
+solve again; then feed the merged support back into \emph{every} block
+of the next round, and repeat until nothing changes.
+
+\section*{2\quad A one-line optimality test}
+
+Take any candidate column $a_j$ and increase its amplitude from the
+current fit by a small $t>0$. Expanding the square,
+\begin{equation*}
+F(x+t\,e_j)\;=\;F(x)\;-\;t\,a_j^{\T}r\;+\;\tfrac{t^2}{2}\,
+\lVert a_j\rVert^2 .
+\end{equation*}
+The sign of $a_j^{\T}r$ therefore decides everything:
+\begin{itemize}
+\item if $a_j^{\T}r>0$, a small amount of component $j$ strictly
+  reduces the misfit --- geometrically, $a_j$ points partly toward the
+  unexplained data;
+\item if $a_j^{\T}r\le0$, switching component $j$ on cannot help;
+\item a component already in use sits at its best amplitude exactly
+  when $a_j^{\T}r=0$.
+\end{itemize}
+For the iterates of the algorithm the last condition is automatic:
+every iterate is an \emph{exact} optimum of its restricted problem, so
+each component in use already satisfies $a_j^{\T}r=0$ (Lemma~2 of the
+article). For such a point, global optimality reduces to the
+\emph{pricing test}: $a_j^{\T}r\le0$ for every column of the full
+matrix (Lemma~3). One caution: for an arbitrary $x$ the pricing test
+alone is \emph{not} sufficient --- with $A=I$, $b=\mathbf 1$,
+$x=2\cdot\mathbf 1$, every $a_j^{\T}r<0$ yet $x$ is far from optimal
+--- which is why the article's tolerance bound (Proposition~2) tracks
+a complementarity residual alongside the pricing residual.
+
+\section*{3\quad The proof in four steps}
+
+\paragraph{Step 1: no round can make the fit worse.}
+Every block of a new round contains the support of the previous merged
+solution, so the previous solution is a legal candidate in every block
+problem; an exactly solved block is at least as good as any legal
+candidate. During merging, each child's \emph{complete} returned
+support is passed upward, so each child solution remains legal at its
+parent, and an exactly solved parent is at least as good as its
+children. Chaining these inequalities from the leaves to the root
+(Lemmas~5--6 of the article) gives $v_k\le v_{k-1}$: the misfit never
+increases.
+
+\paragraph{Step 2: a wrong answer must improve strictly.}
+Suppose the current solution is not the full-grid optimum. By the
+pricing test, some column satisfies $a_{j_0}^{\T}r>0$ --- the residual
+points partly toward a component not in use. That column may have been
+discarded in an earlier round, but the blocks cover the whole matrix,
+so it reappears in some block --- a block that also carries the entire
+current support. That block can therefore reproduce the current
+solution \emph{and} add a little of $a_{j_0}$, which by the expansion
+above strictly reduces the misfit; the exact block solver must do at
+least this well, and Step~1's merge inequalities carry the gain to the
+root (Lemma~7). In short: \emph{if the current answer is not globally
+optimal, the next round is strictly better.}
+
+\paragraph{Step 3: only finitely many values are possible.}
+Each iterate is the exact NNLS optimum over some subset of the $n$
+columns, and there are at most $2^{\,n}$ subsets, hence finitely many
+attainable objective values. A sequence that never increases, and
+strictly decreases whenever the current answer is wrong, cannot wander
+in a finite set forever. After finitely many rounds the algorithm must
+be at a global optimum (Theorem~1(a)). The $2^{\,n}$ bound is
+extremely loose; the article's experiments terminate within 2--13
+rounds.
+
+\paragraph{Step 4: ``no change'' is a certificate, not a heuristic.}
+If two consecutive rounds return the same objective value, the
+previous answer must already have been globally optimal --- otherwise
+Step~2 would have forced a strict decrease. An unchanged support
+implies an unchanged value (Lemma~4(ii)), so the implemented
+``results no longer vary'' test is a sound proof of global optimality,
+not merely an empirical stopping rule (Theorem~1(b)). The article's
+Proposition~1 shows the feedback rounds are what make this true: a
+single divide--merge pass without feedback can lock in a strictly
+suboptimal answer.
+
+\section*{4\quad What ``identical to the full solution'' means}
+
+At termination the divide-and-conquer result has exactly the same
+minimum misfit, the same fitted signal $Ax$, and the same residual
+$b-Ax$ as a direct full-matrix NNLS computation --- unconditionally
+(Theorem~2). The amplitude vector itself need not be unique when two
+or more columns represent identical or redundant signals; different
+coefficient vectors can then produce the same fitted data. If the
+relevant columns are linearly independent, the amplitudes are unique
+as well.
+
+\section*{5\quad The four working assumptions}
+
+The argument uses exactly four properties of the implementation
+(conditions (H1)--(H3) of the article, plus coverage), and each step
+above names the one it relies on:
+
+\begin{enumerate}
+\item \textbf{Exact block solves.} Every restricted NNLS problem is
+  solved exactly. Without it, Steps~1--2 lose their inequalities; the
+  article's Proposition~2 quantifies the graceful degradation under
+  floating-point tolerances.
+\item \textbf{Full coverage.} Every round's blocks cover every column
+  of the fixed full matrix. Without it, the improving column of
+  Step~2 might never reappear.
+\item \textbf{Feedback of the incumbent.} The previous solution's
+  complete support is included in every block. Without it, blocks
+  cannot reproduce the current solution and Step~1 fails.
+\item \textbf{Whole-support merging.} Merge stages pass complete
+  returned supports upward, never splitting or truncating them.
+  Without it, a gain found in a block can be lost on the way to the
+  root, and the certificate of Step~4 loses its soundness proof.
+\end{enumerate}
+
+\medskip
+\noindent In one sentence: \emph{every omitted column gets another
+chance to explain the current residual, so a non-optimal fit must keep
+improving; and since only finitely many restricted optima exist, the
+improvement must end --- at the global optimum.}
+
+\end{document}

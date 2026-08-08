@@ -395,6 +395,11 @@ cover $S$ and each block carries the incumbent, one refinement round
 prices \emph{every} column of the full grid against the current global
 residual. A column discarded earlier is re-offered in every later round;
 if it could improve the fit, the objective must strictly drop.
+Geometrically, a non-optimal residual must point partly toward at
+least one omitted column, and the feedback round places that column
+alongside the incumbent, forcing strict improvement. An
+application-oriented walkthrough of the whole argument is provided as
+Online Resource~1.
 
 \begin{theorem}[finite exact termination; sound certificate]
 \label{thm:main}
@@ -792,6 +797,12 @@ and are archived at \url{https://doi.org/10.5281/zenodo.21839524}.
 
 \paragraph{Competing interests.}
 The author declares no competing interests.
+
+\paragraph{Supplementary information.}
+Online Resource~1: an intuitive guide to the finite-termination and
+global-optimality proof, including a residual-based geometric
+interpretation and a summary of the required algorithmic assumptions
+(PDF).
 
 \bibliography{refs}
 
