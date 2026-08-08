@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 08:43
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 09:17
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -461,24 +461,24 @@ File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 ) (./online-resource-1.aux)
 \openout1 = `online-resource-1.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -539,12 +539,12 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-LaTeX Info: Redefining \S on input line 26.
-LaTeX Font Info:    Redeclaring symbol font `AMSa' on input line 26.
+LaTeX Info: Redefining \S on input line 28.
+LaTeX Font Info:    Redeclaring symbol font `AMSa' on input line 28.
 LaTeX Font Info:    Overwriting symbol font `AMSa' in version `normal'
-(Font)                  U/msa/m/n --> U/msa/m/n on input line 26.
+(Font)                  U/msa/m/n --> U/msa/m/n on input line 28.
 LaTeX Font Info:    Overwriting symbol font `AMSa' in version `bold'
-(Font)                  U/msa/m/n --> U/msa/m/n on input line 26.
+(Font)                  U/msa/m/n --> U/msa/m/n on input line 28.
  (/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/color.sty
 Package: color 2024/06/23 v1.3e Standard LaTeX Color (DPC)
 
@@ -554,7 +554,7 @@ File: color.cfg 2016/01/02 v1.6 sample color configuration
 Package color Info: Driver file: pdftex.def on input line 149.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/mathcolor.ltx))
-Package hyperref Info: Link coloring ON on input line 26.
+Package hyperref Info: Link coloring ON on input line 28.
 
 (./online-resource-1.out) (./online-resource-1.out)
 \@outlinefile=\write3
@@ -568,30 +568,30 @@ Package epstopdf Info: Source file: <Orcidlogo.eps>
 (epstopdf)                    size: 3637 bytes
 (epstopdf)             Command: <repstopdf --outfile=Orcidlogo-eps-converted-to
 .pdf Orcidlogo.eps>
-(epstopdf)             \includegraphics on input line 40.
+(epstopdf)             \includegraphics on input line 42.
 Package epstopdf Info: Output file is already uptodate.
 <Orcidlogo-eps-converted-to.pdf, id=21, 10.0375pt x 10.0375pt>
 File: Orcidlogo-eps-converted-to.pdf Graphic file (type pdf)
 <use Orcidlogo-eps-converted-to.pdf>
-Package pdftex.def Info: Orcidlogo-eps-converted-to.pdf  used on input line 40.
+Package pdftex.def Info: Orcidlogo-eps-converted-to.pdf  used on input line 42.
 
 (pdftex.def)             Requested size: 10.03746pt x 10.03746pt.
-LaTeX Font Info:    Calculating math sizes for size <12.045> on input line 40.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 40.
+LaTeX Font Info:    Calculating math sizes for size <12.045> on input line 42.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 42.
 
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 40.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 42.
 
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Calculating math sizes for size <11.04124> on input line 40
+LaTeX Font Info:    Calculating math sizes for size <11.04124> on input line 42
 .
-LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 40
+LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 42
 .
 
 
@@ -621,34 +621,33 @@ Package rerunfilecheck Info: File `online-resource-1.out' has not changed.
 (rerunfilecheck)             Checksum: 82BC047D61567285C83DF6F7E33A695B;1205.
  ) 
 Here is how much of TeX's memory you used:
- 11775 strings out of 474662
- 181922 string characters out of 5751110
- 584032 words of memory out of 5000000
- 34618 multiletter control sequences out of 15000+600000
- 577505 words of font info for 105 fonts, out of 8000000 for 9000
+ 11772 strings out of 474662
+ 181880 string characters out of 5751110
+ 584027 words of memory out of 5000000
+ 34616 multiletter control sequences out of 15000+600000
+ 577170 words of font info for 104 fonts, out of 8000000 for 9000
  329 hyphenation exceptions out of 8191
  90i,8n,93p,550b,449s stack positions out of 10000i,1000n,20000p,200000b,200000s
- </Users/eb/Library/texlive/2025basic/texmf-var/fonts/pk/ljfour/jknappen/ec/t
-crm1000.602pk></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfo
-nts/cm/cmbx10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/a
-msfonts/cm/cmbx12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmbxti10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type
-1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/
-type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/fon
-ts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025basic/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2025basic/texmf-di
-st/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2025basic/texmf
--dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/texlive/2025basic/tex
-mf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025basic/t
-exmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025basic
-/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2025ba
-sic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/20
-25basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive
-/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb>
-Output written on online-resource-1.pdf (3 pages, 185779 bytes).
+</usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx1
+0.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mbx12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/
+cm/cmbxti10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/ams
+fonts/cm/cmmi10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public
+/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/pub
+lic/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/
+public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/typ
+e1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/
+type1/public/amsfonts/cm/cmr5.pfb></usr/local/texlive/2025basic/texmf-dist/font
+s/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025basic/texmf-dist/fo
+nts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025basic/texmf-dist/
+fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2025basic/texmf-di
+st/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025basic/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025basic/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb>
+Output written on online-resource-1.pdf (3 pages, 185094 bytes).
 PDF statistics:
- 137 PDF objects out of 1000 (max. 8388607)
- 97 compressed objects within 1 object stream
+ 132 PDF objects out of 1000 (max. 8388607)
+ 93 compressed objects within 1 object stream
  17 named destinations out of 1000 (max. 500000)
  38 words of extra memory for PDF output out of 10000 (max. 10000000)
 

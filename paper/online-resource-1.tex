@@ -10,6 +10,8 @@
 \usepackage{booktabs}
 
 \raggedbottom
+% vector math bullet (the class default introduces a Type 3 bitmap glyph)
+\renewcommand{\labelitemi}{$\bullet$}
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\supp}{\operatorname{supp}}
@@ -56,17 +58,15 @@ that $Ax\approx b$, and we measure misfit by
 \begin{equation*}
 F(x)=\tfrac12\lVert Ax-b\rVert^2 .
 \end{equation*}
-The \emph{residual}
-\begin{equation*}
-r=b-Ax
-\end{equation*}
-is the part of the experiment not yet explained by the current fit,
-and the \emph{support} of $x$ is the set of components with positive
-amplitude.
+The \emph{residual} $r=b-Ax$ is the part of the experiment not yet
+explained by the current fit, and the \emph{support} of $x$ is the set
+of components with positive amplitude.
 
-Because the full matrix may not fit on one computer, the
-divide-and-conquer method of the article (Algorithms~1--2) proceeds in
-rounds: divide the columns into blocks; solve NNLS separately in each
+Because the full matrix may not fit on one computer --- and because,
+when few components carry signal, many small solves beat one enormous
+one (the SC'06 paper quantifies this with an analytic performance
+model) --- the divide-and-conquer method of the article
+(Algorithms~1--2) proceeds in rounds: divide the columns into blocks; solve NNLS separately in each
 block; keep each block's nonzero components; merge the survivors and
 solve again; then feed the merged support back into \emph{every} block
 of the next round, and repeat until nothing changes.
@@ -84,7 +84,8 @@ The sign of $a_j^{\T}r$ therefore decides everything:
 \item if $a_j^{\T}r>0$, a small amount of component $j$ strictly
   reduces the misfit --- geometrically, $a_j$ points partly toward the
   unexplained data;
-\item if $a_j^{\T}r\le0$, switching component $j$ on cannot help;
+\item if $a_j^{\T}r\le0$, increasing component $j$'s amplitude cannot
+  help;
 \item a component already in use sits at its best amplitude exactly
   when $a_j^{\T}r=0$.
 \end{itemize}
@@ -93,11 +94,11 @@ every iterate is an \emph{exact} optimum of its restricted problem, so
 each component in use already satisfies $a_j^{\T}r=0$ (Lemma~2 of the
 article). For such a point, global optimality reduces to the
 \emph{pricing test}: $a_j^{\T}r\le0$ for every column of the full
-matrix (Lemma~3). One caution: for an arbitrary $x$ the pricing test
-alone is \emph{not} sufficient --- with $A=I$, $b=\mathbf 1$,
-$x=2\cdot\mathbf 1$, every $a_j^{\T}r<0$ yet $x$ is far from optimal
---- which is why the article's tolerance bound (Proposition~2) tracks
-a complementarity residual alongside the pricing residual.
+matrix (Lemma~3). One caution: for arbitrary $x$ the pricing test
+alone is \emph{not} sufficient ($A=I$, $b=\mathbf 1$,
+$x=2\cdot\mathbf 1$ has every $a_j^{\T}r<0$ yet is far from optimal),
+which is why Proposition~2 of the article tracks a complementarity
+residual as well.
 
 \section*{3\quad The proof in four steps}
 
@@ -141,27 +142,23 @@ previous answer must already have been globally optimal --- otherwise
 Step~2 would have forced a strict decrease. An unchanged support
 implies an unchanged value (Lemma~4(ii)), so the implemented
 ``results no longer vary'' test is a sound proof of global optimality,
-not merely an empirical stopping rule (Theorem~1(b)). The article's
-Proposition~1 shows the feedback rounds are what make this true: a
-single divide--merge pass without feedback can lock in a strictly
-suboptimal answer.
+not merely an empirical stopping rule (Theorem~1(b)). Proposition~1 of
+the article shows why the feedback matters: a single pass without it
+can lock in a strictly suboptimal answer.
 
 \section*{4\quad What ``identical to the full solution'' means}
 
 At termination the divide-and-conquer result has exactly the same
 minimum misfit, the same fitted signal $Ax$, and the same residual
 $b-Ax$ as a direct full-matrix NNLS computation --- unconditionally
-(Theorem~2). The amplitude vector itself need not be unique when two
-or more columns represent identical or redundant signals; different
-coefficient vectors can then produce the same fitted data. If the
-relevant columns are linearly independent, the amplitudes are unique
-as well.
+(Theorem~2). The amplitude vector itself need not be unique when
+columns represent identical or redundant signals; if the relevant
+columns are linearly independent, the amplitudes are unique as well.
 
 \section*{5\quad The four working assumptions}
 
-The argument uses exactly four properties of the implementation
-(conditions (H1)--(H3) of the article, plus coverage), and each step
-above names the one it relies on:
+The argument uses four properties of the implementation (conditions
+(H1)--(H3) of the article, plus coverage):
 
 \begin{enumerate}
 \item \textbf{Exact block solves.} Every restricted NNLS problem is
@@ -180,7 +177,6 @@ above names the one it relies on:
   root, and the certificate of Step~4 loses its soundness proof.
 \end{enumerate}
 
-\medskip
 \noindent In one sentence: \emph{every omitted column gets another
 chance to explain the current residual, so a non-optimal fit must keep
 improving; and since only finitely many restricted optima exist, the

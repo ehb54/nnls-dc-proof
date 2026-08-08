@@ -12,6 +12,7 @@
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
 \usepackage{flafter}   % floats never appear before their source position
+\usepackage{placeins}  % \FloatBarrier to flush pending floats
 \usepackage{needspace} % keep theorem statements off page bottoms
 
 \hypersetup{
@@ -52,9 +53,10 @@ divide-and-conquer method for large-scale nonnegative least squares}
 
 \abstract{
 Model-based fitting of experimental data frequently leads to nonnegative
-least squares (NNLS) problems whose design matrices exceed the memory of a
-single workstation; in the analysis of analytical ultracentrifugation
-experiments, grids of up to $1.5\times10^{6}$ basis functions arise. A
+least squares (NNLS) problems whose direct solution exceeds a single
+workstation's memory capacity or practical time budget; analytical
+ultracentrifugation analyses use grids of up to $1.5\times10^{6}$ basis
+functions. A
 divide-and-conquer method introduced at SC'06 addresses this bottleneck:
 the parameter set is partitioned, NNLS is solved on each block, the
 supports of the block solutions are unioned and re-solved, and, in an
@@ -104,11 +106,18 @@ parameters, and nonnegativity reflects physical concentrations; the
 two-dimensional spectrum analysis (2DSA) implemented in
 UltraScan~\cite{demeler2005,brookes2010} solves such problems routinely.
 
-In practice the resolution of the analysis is limited less by the solver
-than by memory: grids of $10^{5}$--$10^{6}$ basis functions exceed the
-capacity of a single workstation. The divide-and-conquer method of
-Brookes, Boppana and Demeler~\cite{brookes2006}, introduced at SC'06 and
-deployed in UltraScan since, addresses this constraint directly. The
+In practice the resolution of the analysis is limited by scale in two
+coupled ways: grids of $10^{5}$--$10^{6}$ basis functions exceed the
+memory of a single workstation, and the cost of a direct NNLS solve
+grows superlinearly with the number of columns. The divide-and-conquer
+method of Brookes, Boppana and Demeler~\cite{brookes2006}, introduced
+at SC'06 and deployed in UltraScan since, addresses both: because
+physical solutions are sparse --- only a small fraction of candidate
+solutes carries signal --- the blocks and their merges remain far
+smaller than the full problem, and an analytic performance model
+in~\cite{brookes2006} selects the block size and predicts the
+attainable speedup as a function of the surviving fraction, alongside
+the reduction in per-node memory. The
 parameter set is partitioned into blocks; NNLS is applied to each block;
 the supports of the block solutions --- the parameters that contribute to
 each best fit --- are unioned, possibly in several stages, and NNLS is
@@ -305,6 +314,8 @@ merge tree $\mathcal T$ with $p$ leaves
 \end{algorithmic}
 \end{algorithm}
 
+\FloatBarrier
+\Needspace{12\baselineskip}
 The analysis requires three conditions.
 \begin{enumerate}
 \item[(H1)] Each application of $f$ solves its restricted problem
@@ -772,7 +783,8 @@ vector itself, which is relevant to regularized variants of the
 motivating analysis~\cite{brookes2010}. Overall, the results place the
 production use of the iterated divide-and-conquer method on firm
 footing and should support its transfer to other spectrum-type NNLS
-applications where the parameter space exceeds single-node memory.
+applications whose scale --- in memory or in solve time --- exceeds a
+single node.
 
 \section*{Statements and Declarations}
 
@@ -804,6 +816,7 @@ global-optimality proof, including a residual-based geometric
 interpretation and a summary of the required algorithmic assumptions
 (PDF).
 
+\setlength{\bibsep}{4pt plus 0.3ex}
 \bibliography{refs}
 
 \end{document}
