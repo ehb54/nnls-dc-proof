@@ -55,7 +55,7 @@ divide-and-conquer method for large-scale nonnegative least squares}
 Model-based fitting of experimental data frequently leads to nonnegative
 least squares (NNLS) problems whose direct solution exceeds a single
 workstation's memory capacity or practical time budget; analytical
-ultracentrifugation analyses use grids of up to $1.5\times10^{6}$ basis
+ultracentrifugation analyses use grids of $10^{5}$--$10^{6}$ basis
 functions. A
 divide-and-conquer method introduced at SC'06 addresses this bottleneck:
 the parameter set is partitioned, NNLS is solved on each block, the
@@ -98,7 +98,7 @@ determined by solving
 \end{equation*}
 classically by the active-set algorithm of Lawson and
 Hanson~\cite{lawson1974} and its accelerated
-descendants~\cite{bro1997,vanbenthem2004,kim2011}. In the sedimentation
+descendants~\cite{bro1997,vanbenthem2004,kim2011,myre2017,dessole2023}. In the sedimentation
 velocity analysis of analytical ultracentrifugation (AUC) data, each
 column of $A$ is a finite-element solution of the Lamm equation for one
 candidate solute, the grid ranges over sedimentation and frictional
@@ -109,7 +109,12 @@ UltraScan~\cite{demeler2005,brookes2010} solves such problems routinely.
 In practice the resolution of the analysis is limited by scale in two
 coupled ways: grids of $10^{5}$--$10^{6}$ basis functions exceed the
 memory of a single workstation, and the cost of a direct NNLS solve
-grows superlinearly with the number of columns. The divide-and-conquer
+grows superlinearly with the number of columns. Direct solvers have
+advanced considerably --- TNT-NN handles dense systems of size
+$45000\times45000$~\cite{myre2017}, and Lawson--Hanson variants with
+finite-convergence theory of their own continue to
+appear~\cite{dessole2023} --- but such sizes remain one to two orders
+of magnitude short of the grids above. The divide-and-conquer
 method of Brookes, Boppana and Demeler~\cite{brookes2006}, introduced
 at SC'06 and deployed in UltraScan since, addresses both: because
 physical solutions are sparse --- only a small fraction of candidate
@@ -161,22 +166,37 @@ of the motivating application, including per-node verification of every
 monotonicity inequality used in the proof (Section~\ref{sec:numerics}).
 \end{enumerate}
 
-The analysis places the method in a classical lineage. The refinement
-round is a distributed \emph{pricing} step in the sense of column
-generation~\cite{dantzig1960,gilmore1961}: the merged problem is a
-restricted master, and the blocks jointly price every column of the full
-grid against the current residual. The strict-improvement argument is
-the same device that underlies convergence proofs for working-set
-decomposition methods in support vector machine
-training~\cite{osuna1997,lin2001}. What the present setting adds is the
-merge-tree structure with changing partitions, an exact finite
-termination argument (the objective values live in a finite set, so
-strict descent cannot continue indefinitely), the certificate soundness
-statement, and the counterexample delimiting the non-iterated scheme.
-Notably, no bound on the working-set size must be imposed: basic
-solutions returned by Lawson--Hanson-type solvers have supports bounded
-by the rank of $A$, which is what keeps the merge stages small in
-practice.
+The analysis places the method in a classical lineage, and we are
+explicit about what is inherited and what is new. The refinement round
+is a distributed \emph{pricing} step in the sense of column
+generation~\cite{dantzig1960,gilmore1961,lubbecke2005}: the merged
+problem is a restricted master, and the blocks jointly price every
+column of the full grid against the current residual --- a parallel
+form of the partial (multiple) pricing surveyed
+in~\cite{lubbecke2005}. The finiteness mechanism itself is the
+classical simplicial-decomposition argument that exact master solves
+over a finite generator set terminate
+finitely~\cite{vonhohenbalken1977,hearn1985,garcia2003}, and the
+strict-improvement step is the same device that underlies convergence
+proofs for working-set decomposition in support vector machine
+training~\cite{osuna1997,lin2001}. What the present setting adds is
+not that skeleton but the structure around it: pricing is distributed
+over incumbent-carrying blocks whose exact solves realize a full
+pricing sweep (Lemma~\ref{lem:strict}); merge trees with changing
+partitions discard columns at internal nodes, yet cannot lose ground
+under condition (H3) (Lemma~\ref{lem:tree}); the feasible region is an
+unbounded polyhedral cone rather than a polytope; and the implemented
+stopping rule is proved to be a sound certificate, with a
+counterexample delimiting the non-iterated scheme. On working-set
+size, restricted simplicial decomposition bounds retention and must
+re-establish finiteness under the bound~\cite{hearn1985}; here no cap
+need be imposed, because basic solutions returned by
+Lawson--Hanson-type solvers have supports bounded by the rank of $A$,
+which is what keeps the merge stages small in practice. Safe-screening
+rules~\cite{folberth2020} are a complementary column-reduction
+mechanism whose discards are safe by construction and need no
+a~posteriori guarantee; the discards here are heuristic, which is
+precisely why a global exactness theorem is required.
 
 Section~\ref{sec:prelim} fixes notation and collects preliminaries;
 Section~\ref{sec:alg} formalizes the algorithm;
@@ -284,14 +304,14 @@ Theorem~\ref{thm:main}(b) certifies either.
 \begin{algorithm}[t]
 \caption{One round of divide-and-conquer NNLS}\label{alg:round}
 \begin{algorithmic}[1]
-\Require incumbent set $R\subseteq S$; partition $S_1,\dots,S_p$ of $S$;
-merge tree $\mathcal T$ with $p$ leaves
+\Require incumbent set $R\subseteq S$; leaf candidate sets
+$B_1,\dots,B_p$; merge tree $\mathcal T$ with $p$ leaves
 \For{$i=1,\dots,p$ (in parallel)}
-  \State $y_i\gets$ minimizer of $\prob{S_i\cup R}$;\quad
+  \State $y_i\gets$ minimizer of $\prob{B_i}$;\quad
          $U_i\gets\supp(y_i)$
 \EndFor
 \For{each internal node $\nu$ of $\mathcal T$, leaves upward}
-  \State $C_\nu\gets\bigcup_{\mu\ \text{child of}\ \nu}U_\mu$;\quad
+  \State choose a candidate set $C_\nu$;\quad
          $z_\nu\gets$ minimizer of $\prob{C_\nu}$;\quad
          $U_\nu\gets\supp(z_\nu)$
 \EndFor
@@ -323,17 +343,22 @@ exactly. Active-set solvers of Lawson--Hanson
 type~\cite{lawson1974,bro1997} terminate finitely at a point satisfying
 \eqref{eq:kkt} in exact arithmetic; inexact solves are treated in
 Section~\ref{sec:inexact}.
-\item[(H2)] In every round the blocks cover $S$, and every block
-includes the incumbent $R_{k-1}$ (``all parameters in $R_D$ are unioned
-back into each $S_i$''~\cite{brookes2006}).
+\item[(H2)] In every round the leaf candidates cover $S$ and carry the
+incumbent: there is a partition $S_1,\dots,S_p$ of $S$ with
+$B_i\supseteq S_i\cup R_{k-1}$ for every leaf $i$ (``all parameters in
+$R_D$ are unioned back into each $S_i$''~\cite{brookes2006}).
 \item[(H3)] Every merge node's candidate set contains the \emph{whole}
-returned set of each of its children: merges union returned sets and do
-not split or truncate them.
+returned set of each of its children:
+$C_\nu\supseteq\bigcup_{\mu\ \mathrm{child\ of}\ \nu}U_\mu$.
 \end{enumerate}
-(H3) holds automatically for the two-level scheme of
-\cite[Text~1]{brookes2006}, and for any multistage merge that packs
-whole result sets into groups; Section~\ref{sec:discussion} discusses
-the one implementation pattern that can violate it. In contrast to
+The canonical instantiation takes $B_i=S_i\cup R_{k-1}$ and
+$C_\nu=\bigcup_\mu U_\mu$ --- merges whose candidates are exactly the
+unions of whole returned sets, which we call \emph{atomic} --- and
+satisfies (H2)--(H3) by construction; the two-level scheme of
+\cite[Text~1]{brookes2006} is of this form. A multistage combining
+phase that re-chunks unioned results into fixed-size pieces is also an
+instance of Algorithm~\ref{alg:round}, but one that can violate (H3);
+Section~\ref{sec:discussion} discusses it. In contrast to
 working-set methods that must cap the working set
 \emph{a priori}~\cite{osuna1997}, no size control is needed here:
 every restricted problem admits a \emph{basic} minimizer whose positive
@@ -357,8 +382,9 @@ the columns themselves between rounds is not
 
 \begin{lemma}[tree descent]\label{lem:tree}
 Under \emph{(H1)} and \emph{(H3)}, for every internal node $\nu$ with
-children $\mu$: $F(z_\nu)\le\min_\mu F(z_\mu)$. Consequently
-$v_k\le\min_i F(y_i)$ for round $k$'s leaf solutions $y_i$.
+children $\mu$: $F(z_\nu)\le\min_\mu F(z_\mu)$, where for a leaf child
+$\mu$ we set $z_\mu:=y_\mu$. Consequently $v_k\le\min_i F(y_i)$ for
+round $k$'s leaf solutions $y_i$.
 \end{lemma}
 \begin{proof}
 $\supp(z_\mu)=U_\mu\subseteq C_\nu$ by (H3), so $z_\mu$ is feasible for
@@ -370,10 +396,10 @@ the path from each leaf to the root.
 Under \emph{(H1)--(H3)}, $v_k\le v_{k-1}$ for every $k\ge2$.
 \end{lemma}
 \begin{proof}
-$\supp(x_{k-1})=R_{k-1}\subseteq S_i\cup R_{k-1}$ for every block $i$ of
-round $k$ by (H2), so the incumbent is feasible for every leaf problem;
-hence $F(y_i)\le F(x_{k-1})=v_{k-1}$ for all $i$, and
-Lemma~\ref{lem:tree} completes the argument.
+$\supp(x_{k-1})=R_{k-1}\subseteq B_i$ for every leaf $i$ of round $k$
+by (H2), so the incumbent is feasible for every leaf problem; hence
+$F(y_i)\le F(x_{k-1})=v_{k-1}$ for all $i$, and Lemma~\ref{lem:tree}
+completes the argument.
 \end{proof}
 
 \begin{lemma}[strict descent off the optimum]\label{lem:strict}
@@ -389,8 +415,9 @@ $j_0\notin C_{k-1}$ with
 \begin{equation*}
 a_{j_0}^{\T}\,r(x_{k-1})>0 .
 \end{equation*}
-By (H2), $j_0$ lies in some block $S_{i_0}$ of round $k$, and the leaf
-problem $\prob{S_{i_0}\cup R_{k-1}}$ contains both $j_0$ and
+By (H2), $j_0$ lies in some partition cell $S_{i_0}$ of round $k$, and
+the leaf problem $\prob{B_{i_0}}$ --- with
+$B_{i_0}\supseteq S_{i_0}\cup R_{k-1}$ --- contains both $j_0$ and
 $\supp(x_{k-1})$, so $x_{k-1}$ is feasible for it. Along the feasible
 ray $x_{k-1}+t\,e_{j_0}$, $t\ge0$,
 \begin{equation*}
@@ -416,14 +443,17 @@ Online Resource~1.
 \label{thm:main}
 Assume \emph{(H1)--(H3)}. Then:
 \begin{enumerate}
-\item[\emph{(a)}] there is a finite $K\le|V|$, where
-$V:=\{\Val(C):C\subseteq S\}$, such that $x_K$ is a global minimizer of
-$\prob{S}$; and $v_k=v^*$ with $x_k$ a global minimizer for every
-$k\ge K$;
+\item[\emph{(a)}] the first index $K$ with $x_K$ a global minimizer of
+$\prob{S}$ is finite and satisfies $K\le|V|$, where
+$V:=\{\Val(C):C\subseteq S\}$; and $v_k=v^*$ with $x_k$ a global
+minimizer for every $k\ge K$;
 \item[\emph{(b)}] if any round leaves the value unchanged,
 $v_k=v_{k-1}$ for some $k\ge2$, then $x_{k-1}$ and $x_k$ are global
 minimizers; in particular the implemented stopping rule --- the result
-no longer varies --- is a sound certificate of global optimality.
+no longer varies --- is a sound certificate of global optimality;
+\item[\emph{(c)}] Algorithm~\ref{alg:iter} halts at round
+$K{+}1\le|V|{+}1$ exactly: no stopping test can fire at any round
+$k\le K$, and the value test fires at round $K{+}1$.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
@@ -432,12 +462,17 @@ $v_k=\Val(C_k)\in V$ with $|V|\le2^{\,n}$ finite. By
 Lemma~\ref{lem:mono} the sequence $(v_k)$ is nonincreasing, and by
 Lemma~\ref{lem:strict} it strictly decreases as long as the iterate is
 not globally optimal; a strictly decreasing sequence in a finite set
-cannot exceed $|V|$ terms, so some $x_K$ with $K\le|V|$ is globally
-optimal. For $k\ge K$, $v^*\le v_k\le v_K=v^*$ by
+cannot exceed $|V|$ terms, so the first optimal index $K$ satisfies
+$K\le|V|$. For $k\ge K$, $v^*\le v_k\le v_K=v^*$ by
 Lemma~\ref{lem:mono}, and any feasible point of $\prob{S}$ with value
 $v^*$ is a global minimizer. Part (b) is the contrapositive of
 Lemma~\ref{lem:strict} together with the same sandwich; an unchanged
-result implies an unchanged value.
+result implies an unchanged value. For (c): if $2\le k\le K$ then
+$x_{k-1}$ is not a global minimizer (by minimality of $K$), so
+$v_k<v_{k-1}$ by Lemma~\ref{lem:strict} and the value test cannot
+fire, while $R_k=R_{k-1}$ is impossible because equal supports force
+equal values (Section~\ref{sec:alg}); at round $K{+}1$, part (a) gives
+$v_{K+1}=v_K=v^*$, so the value test fires.
 \end{proof}
 
 \Needspace{10\baselineskip}
@@ -455,7 +490,9 @@ unique and $x_\infty=x^*$, so the returned parameter set equals the
 full computation's $R=f(S)$.
 \end{theorem}
 \begin{proof}
-The first display restates Theorem~\ref{thm:main}(a) with
+By Theorem~\ref{thm:main}(c) the terminal iterate is $x_{K+1}$, a
+global minimizer by Theorem~\ref{thm:main}(a); the first display then
+follows with
 Lemma~\ref{lem:exist}. For the solution-set description: any minimizer
 $x$ has $Ax=Ax^*$ by Lemma~\ref{lem:exist}, and \eqref{eq:kkt} forces
 $x_j=0$ wherever $a_j^{\T}r^*<0$, so $\supp(x)\subseteq Z$; conversely
@@ -468,13 +505,17 @@ $x_Z$.
 The objective value, fit, and residual --- the quantities that determine
 goodness of fit --- are covered by Theorem~\ref{thm:outputs} without any
 condition. When the minimizer is not unique (near-duplicate basis
-functions on fine grids make this possible), iterates could in principle
-move between optimal supports with $v_k\equiv v^*$, delaying the
-set-stability test even though every iterate is already optimal;
-stopping on an unchanged \emph{value} is therefore the robust
-implementation, and is sound by Theorem~\ref{thm:main}(b). Strictly
-convex regularization removes the issue altogether
-(Section~\ref{sec:discussion}).
+functions on fine grids make this possible), iterates can move
+indefinitely among optimal supports with $v_k\equiv v^*$, and the
+set-stability test then never fires: Theorem~\ref{thm:main}(b) gives
+its soundness, not its completeness, and in duplicated-column
+experiments with the value rule disabled, runs settle into cycles
+among distinct optimal supports (Section~\ref{sec:numerics}). It is
+the value test that guarantees termination
+(Theorem~\ref{thm:main}(c)), so the disjunctive stopping rule of
+Algorithm~\ref{alg:iter} is a design requirement rather than a
+convenience. Strictly convex regularization removes the issue
+altogether (Section~\ref{sec:discussion}).
 \end{remark}
 
 \section{The non-iterated scheme is not exact}\label{sec:counter}
@@ -523,17 +564,21 @@ The mechanism is a suppressor effect. Inside $S_1$, the column $a_1$
 alone fits the first and third components of $b$ so well that the local
 residual points away from $a_2$; discarding $a_2$ is \emph{correct for
 the block} (the conditions \eqref{eq:kkt} hold with strict inequality),
-yet wrong globally, because once $a_3$ absorbs the second component the
-joint residual rotates and both discarded columns become necessary. No
-threshold adjustment inside the blocks can repair this: the failure is
-in what the block can see, not in how carefully it decides. The
-refinement round repairs it precisely because it re-prices every column
-against the merged residual. In the motivating application the basis
-functions vary smoothly over the grid, so each block typically contains
-near-substitutes for the columns the full solution needs; this is
-consistent with the fast convergence reported in~\cite{brookes2006},
-while Section~\ref{sec:numerics} shows the single-pass gap is
-nevertheless nonzero in essentially every random trial.
+yet wrong globally, because once $a_3$ absorbs the second component
+the joint residual rotates and both discarded columns become
+attractively priced ($a_2^{\T}r=a_4^{\T}r=\tfrac16>0$); every optimal
+solution uses at least one of them, since the solution set of
+$\prob{S}$ is the segment $x^*+t\,(\sqrt2,-1,-\sqrt2,1)^{\T}$,
+$t\in[-\tfrac14,\tfrac14]$, on which $x_2+x_4=\tfrac12$. No threshold adjustment inside the blocks can
+repair this: the failure is in what the block can see, not in how
+carefully it decides. The refinement round repairs it precisely
+because it re-prices every column against the merged residual. In the
+motivating application the basis functions vary smoothly over the
+grid, so each block typically contains near-substitutes for the
+columns the full solution needs; this is consistent with the fast
+convergence reported in~\cite{brookes2006}, while
+Section~\ref{sec:numerics} shows the single-pass gap is nevertheless
+nonzero in every trial of the correlated-design suites.
 \end{remark}
 
 \section{Inexact solves and pricing}\label{sec:inexact}
@@ -599,11 +644,12 @@ released code, as squared residual norms $\lVert Ax-b\rVert^2=2F$, and
 the normalized quantities below are defined in that convention. The
 floating-point implementation of Algorithm~\ref{alg:iter} stops when
 the returned support is unchanged or when the objective improves by
-less than a relative tolerance of $10^{-12}$, and records which rule
-fired. Four suites were run: (i) \emph{smooth correlated kernels},
-$80\times240$ designs of overlapping Gaussian profiles with random
-centers and widths, sparse nonnegative truth, and additive noise,
-partitioned into 4--16 contiguous blocks; (ii) a \emph{two-dimensional
+less than a relative tolerance of $10^{-12}$ --- the latter a
+floating-point relaxation of the exact value test --- and records
+which rule fired. Four suites were run: (i) \emph{smooth correlated
+kernels}, $80\times240$ designs of overlapping Gaussian profiles with
+random centers and widths, sparse nonnegative truth, and additive
+noise, partitioned into 4, 8, or 16 contiguous blocks; (ii) a \emph{two-dimensional
 lattice} surrogate of a sedimentation-analysis grid: the same kernels
 parameterized on a $20\times12$ (center,\,width) lattice, partitioned
 into eight \emph{interlaced subgrids} (every fourth center index
@@ -633,9 +679,11 @@ Algorithm~\ref{alg:iter}, including the terminating round. The value
 gap is $|v_{\mathrm{dc}}-v^*|/\max(1,v^*)$ against a full-grid solve.
 The KKT residuals at termination are reported as
 $\delta/\max(1,\lVert A^{\T}b\rVert_\infty)$ and
-$\varepsilon/\max(1,v^*)$. A single-pass trial is counted
-suboptimal when its value exceeds $v^*$ by more than
-$10^{-9}(1+v^*)$.}
+$\varepsilon/\max(1,v^*)$; across all 200 trials $v^*\le0.026$, so
+$\max(1,v^*)=1$ and the value-gap and $\varepsilon$ columns are
+effectively absolute, while $\delta$ carries a data-dependent scale.
+A single-pass trial is counted suboptimal when its value exceeds
+$v^*$ by more than $10^{-9}(1+v^*)$.}
 \label{tab:trials}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -663,22 +711,26 @@ duplicated columns & 40 & 2/4/9 & $9.5\times10^{-17}$
 \caption{(a) Relative excess value $(v_k-v^*)/v^*$ per round for the 60
 smooth-kernel trials (light curves; dark curve with markers: per-round
 median, with each trial's terminal value carried forward after it
-terminates), clipped at $10^{-16}$ for display. (b) Rounds to
-termination across all 200 trials}
+terminates). Terminal excesses lie between $-8.9\times10^{-15}$ and
+$1.1\times10^{-14}$; values below the $10^{-16}$ display floor,
+including the nonpositive ones, are clipped to it. (b) Rounds to
+termination across all 200 trials, stacked by suite}
 \label{fig:convergence}
 \end{figure}
 
 Four observations connect the experiments to the theory. First, the
-terminal agreement with the full-grid solve is at roundoff level in all
-200 trials, including the duplicated-column suite, where supports may
-legitimately differ while values and fits coincide
-(Theorem~\ref{thm:outputs}); consistent with
-Remark~\ref{rem:stopping}, most duplicated-column runs terminated on
-the value rule (33 of 40) rather than on a stabilized support, while
-both kernel suites always stabilized their supports. Second, from
-Fig.~\ref{fig:convergence}a the value sequence drops by many orders of
-magnitude within a few rounds and reaches the roundoff floor,
-consistent with the finite exact termination of
+terminal agreement with the full-grid solve is at roundoff level in
+all 200 trials, and the stopping behavior separates cleanly by regime:
+both kernel suites always terminated on the exact support rule (60/60
+and 40/40), with returned supports matching the full-grid solve's in
+all 100 trials --- the regime where Theorem~\ref{thm:outputs}'s
+uniqueness clause applies --- while the Gaussian suite terminated on
+the value rule in 60 of 60 trials and the duplicated-column suite in
+33 of 40, with supports differing from the full-grid solve's in 60 of
+60 and 34 of 40 trials respectively, as Theorem~\ref{thm:outputs}
+permits. Second, from Fig.~\ref{fig:convergence}a the value sequence
+drops by many orders of magnitude within a few rounds and reaches the
+roundoff floor, consistent with the finite exact termination of
 Theorem~\ref{thm:main}; a plot cannot by itself distinguish finite
 termination from sufficiently fast asymptotic convergence --- that
 distinction is supplied by the theorem. Third, the non-iterated scheme
@@ -689,14 +741,72 @@ a typical single-pass value $9.4$ times the optimum --- under the
 interlaced partition, where every subgrid is a coarse copy of the whole
 grid and locally optimal fits are correspondingly misleading; the
 feedback rounds therefore carry the exactness in precisely the regimes
-the method was designed for. Fourth, observed round counts are 2--9
-for the random-block suites, comparable to the 3--7 refinement
-iterations reported in~\cite{brookes2006}, and 7--13 under the
-interlaced partition (Fig.~\ref{fig:convergence}b). The four-column
-instance of Proposition~\ref{prop:counter} is reproduced exactly:
-single-pass objective $\tfrac1{24}$ ($\lVert r\rVert^2=\tfrac1{12}$),
-pricing violation $\tfrac16$, and value $0$ after one refinement
-round.
+the method was designed for. Fourth, the suite built to mirror the
+moving-grid partitioning of~\cite{brookes2006} --- (ii) --- required
+7--13 rounds, above the 3--7 refinement iterations reported
+in~\cite{brookes2006}; the comparison is not direct (surrogate kernels
+rather than Lamm solutions, and a strict certificate rather than a
+goodness-of-fit stopping rule), and the 2--9 rounds of the remaining
+suites sit at or below that range largely because the exactly feasible
+Gaussian suite dominates the low counts
+(Fig.~\ref{fig:convergence}b). The four-column instance of
+Proposition~\ref{prop:counter} is reproduced exactly: single-pass
+objective $\tfrac1{24}$ ($\lVert r\rVert^2=\tfrac1{12}$), pricing
+violation $\tfrac16$, and value $0$ after one refinement round.
+
+Two degenerate regimes deserve explicit comment. The Gaussian suite is
+underdetermined ($40\times160$): $b$ lies in the cone, $v^*$ is zero
+to roundoff in every trial, its minimizers are never unique
+($\operatorname{rank}(A)=40<160$), and its value-gap entry in
+Table~\ref{tab:trials} is therefore a difference of two near-zero
+optima --- the meaningful certificate in exactly feasible regimes is
+the KKT pair, not the value gap. It thereby serves, with suite (iv),
+as a second non-uniqueness stress. Second, the support rule alone need
+not terminate, as Remark~\ref{rem:stopping} states: with the value
+rule disabled, 3 of 40 duplicated-column runs failed to stabilize
+within 400 rounds, and one extended run settled into a period-3 cycle
+among three distinct optimal supports with $v_k=v^*$ from round 4
+onward. Finally, the floating-point stall test is a relaxation not
+covered by Theorem~\ref{thm:main}(b): the 93 runs that terminated on
+it are certified a~posteriori by their reported $\delta$ and
+$\varepsilon$ through Proposition~\ref{prop:inexact}, while the 107
+support-rule terminations carry the exact certificate.
+
+Scale was probed separately on the smooth-kernel generator at fixed
+$m=80$ with $n\in\{960,\,3840,\,15360\}$ --- 4$\times$ to 64$\times$
+the base suite --- block counts scaled to keep roughly 60 columns per
+block, and fan-in 4 (Table~\ref{tab:scaling}). Round counts remain in
+the single digits and terminal agreement with the full-grid reference
+stays at roundoff; the whole sweep takes about half a minute in the
+released scripts. These experiments verify the theorem's inequalities,
+not production scale: every trial deliberately retains a tractable
+full-grid reference solve, whereas grids of $10^{5}$--$10^{6}$ are
+precisely where the reference is unavailable and the certificate of
+Theorem~\ref{thm:main} replaces it.
+
+\begin{table}[t]
+\centering
+\caption{Scaling probe on the smooth-kernel generator (fixed seeds in
+the released code; $m=80$, roughly 60 columns per block, fan-in 4, six
+trials per size). Conventions as in Table~\ref{tab:trials}.}
+\label{tab:scaling}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+size & trials & rounds & value gap & pricing $\delta$
+& compl.\ $\varepsilon$\\
+ & & min/med/max & (worst) & (worst) & (worst)\\
+\midrule
+$n=960$ & 6 & 5/7/8 & $1.5\times10^{-16}$ & $7.5\times10^{-17}$
+& $1.1\times10^{-13}$\\
+$n=3840$ & 6 & 6/7/8 & $2.3\times10^{-16}$ & $8.9\times10^{-17}$
+& $5.4\times10^{-14}$\\
+$n=15360$ & 6 & 6/8/9 & $9.5\times10^{-17}$ & $6.4\times10^{-17}$
+& $9.9\times10^{-14}$\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Discussion}\label{sec:discussion}
 
@@ -704,9 +814,10 @@ round.
 A natural first approach is to show the round map contracts toward the
 full solution. Two structural facts make such a formulation unnatural:
 with arbitrary tie-breaking the round map is set-valued --- by
-Theorem~\ref{thm:main} it maps the set of global minimizers into
-itself, but it need not fix any particular minimizer, and that set is a
-continuum whenever the minimizer is non-unique --- whereas a strict
+Lemmas~\ref{lem:restrict}(i) and~\ref{lem:mono} it maps the set of
+global minimizers into itself, but it need not fix any particular
+minimizer, and that set is a continuum whenever the minimizer is
+non-unique --- whereas a strict
 contraction on a complete metric space has a unique fixed point; and no
 instance-independent contraction factor exists, since ill-conditioned
 (nearly parallel) columns make a single round's progress arbitrarily
@@ -735,7 +846,12 @@ basic-solution solvers return supports with at most
 $\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), a
 fan-in-$q$ atomic merge contains at most $q\operatorname{rank}(A)$
 candidate indices, giving a predictable memory bound while preserving
-the guarantee; this appears advisable in any implementation. Two further
+the guarantee; this appears advisable in any implementation. The
+shipped UltraScan implementation follows this pattern: its 2DSA master
+accumulates each worker's complete solute vector into a depth-indexed
+bin, ships a bin whole when adding the next result would exceed the
+size cap, and unions the previous iteration's nonzero solutes into
+every subgrid job --- the canonical instantiation of (H2) and (H3). Two further
 practical consequences of the analysis: stopping on an unchanged
 \emph{value} is sound and robust under non-uniqueness
 (Remark~\ref{rem:stopping}), and one distributed pricing sweep per
@@ -748,14 +864,18 @@ below that of the NNLS solves.
 \paragraph{Limitations.}
 The guarantee is stated for exact subproblem solves; floating-point
 practice is covered only through the tolerance bound of
-Proposition~\ref{prop:inexact}. The bound $K\le|V|$ on the number of
-rounds is combinatorial, in the spirit of finite-termination results
-for active-set and simplex methods, and we make no polynomial claim;
-the observed counts in Section~\ref{sec:numerics} are at most 13, but a
-worst-case analysis
-remains open. The analysis fixes the column set $S$: per-round
-partitions may change, but enlarging or moving the grid itself between
-rounds is a different algorithm and outside the present scope. Finally,
+Proposition~\ref{prop:inexact}. The bound on the number of rounds
+executed, $K{+}1\le|V|{+}1$ (Theorem~\ref{thm:main}(c)), is
+combinatorial, in the spirit of finite-termination results for
+active-set and simplex methods, and we make no polynomial claim; the
+observed counts in Section~\ref{sec:numerics} are at most 13, but a
+worst-case analysis remains open. The reported suites are sized so
+that every trial retains a full-grid reference solve; they verify the
+proof's inequalities and, in Table~\ref{tab:scaling}, scaling to
+$n=15360$, not production scale. The analysis fixes the column set
+$S$: per-round partitions may change, but enlarging or moving the grid
+itself between rounds is a different algorithm and outside the present
+scope. Finally,
 when systematic-noise elimination is interleaved between rounds as a
 separate processing step, the objective changes from round to round and
 the Lyapunov argument does not apply; this is consistent with the
@@ -780,7 +900,13 @@ Tikhonov-regularized NNLS the augmented objective is strictly convex
 when the regularizer has trivial kernel; minimizers are then unique and
 the equivalence holds unconditionally at the level of the amplitude
 vector itself, which is relevant to regularized variants of the
-motivating analysis~\cite{brookes2010}. Overall, the results place the
+motivating analysis~\cite{brookes2010}. The practical trade-off is
+sparsity: the augmented matrix has full column rank, so the
+basic-solution support bound $|U|\le\operatorname{rank}(A)$ becomes
+vacuous, and supports --- hence merge sizes --- grow with the
+regularization weight; amplitude-level uniqueness is bought at the
+price of the sparsity that keeps the merges small. Overall, the
+results place the
 production use of the iterated divide-and-conquer method on firm
 footing and should support its transfer to other spectrum-type NNLS
 applications whose scale --- in memory or in solve time --- exceeds a
@@ -806,6 +932,9 @@ The verification and experiment scripts (Python, using
 note, are available at \url{https://github.com/ehb54/nnls-dc-proof}
 and are archived at \url{https://doi.org/10.5281/zenodo.21839524}.
 \par}
+
+\paragraph{Author contributions.}
+E.H.B. is the sole author of this work.
 
 \paragraph{Competing interests.}
 The author declares no competing interests.

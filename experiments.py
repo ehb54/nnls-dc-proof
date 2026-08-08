@@ -21,7 +21,9 @@ matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 import matplotlib.pyplot as plt
 
-from verify import (nnls_on, ssr, kkt_residuals, dc_nnls,
+import time
+
+from verify import (nnls_on, ssr, kkt_residuals, dc_nnls, dc_round,
                     make_smooth_instance, make_gaussian_instance,
                     make_duplicate_instance, make_lattice_instance,
                     interlaced_blocks)
@@ -56,6 +58,7 @@ def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
                                      iterative=True, fan_in=fi)
         reasons[reason] = reasons.get(reason, 0) + 1
         delta, eps = kkt_residuals(A, b, x)
+        full_support = set(np.flatnonzero(x_full > 0.0).tolist())
         recs.append({
             "v_full": v_full,
             "v_sp": vals_sp[-1],
@@ -65,9 +68,94 @@ def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
             "delta": delta / scale,
             "eps": eps / max(1.0, v_full),
             "sp_subopt": vals_sp[-1] - v_full > 1e-9 * (1.0 + v_full),
+            "supp_match": set(map(int, np.flatnonzero(x > 0.0))) == full_support,
         })
-    print(f"[{name}] {n_trials} trials done; stopping reasons: {reasons}")
+    n_match = sum(r["supp_match"] for r in recs)
+    print(f"[{name}] {n_trials} trials done; stopping reasons: {reasons}; "
+          f"support matches full-grid solve: {n_match}/{n_trials}")
     return recs
+
+
+def run_scaling(sizes, n_trials, rng):
+    """Scaling probe on the smooth-kernel generator: fixed m = 80, growing
+    n, block counts scaled to keep ~60 columns per block, fan-in 4.  Every
+    trial retains a full-grid reference solve.  Returns LaTeX rows."""
+    rows = []
+    for n in sizes:
+        t0 = time.time()
+        recs = []
+        for _ in range(n_trials):
+            A, b = make_smooth_instance(rng, m=80, n=n, k_true=8)
+            scale = max(1.0, float(np.max(np.abs(A.T @ b))))
+            x_full = nnls_on(A, b, range(n))
+            v_full = ssr(A, b, x_full)
+            x, R, vals, reason = dc_nnls(A, b, nblocks=max(4, n // 60),
+                                         fan_in=4)
+            delta, eps = kkt_residuals(A, b, x)
+            recs.append({
+                "rounds": len(vals),
+                "val_err": abs(vals[-1] - v_full) / max(1.0, v_full),
+                "delta": delta / scale,
+                "eps": eps / max(1.0, v_full),
+            })
+        dt = time.time() - t0
+        rounds = [r["rounds"] for r in recs]
+        rows.append(
+            f"$n={n}$ & {n_trials} & {min(rounds)}/{int(np.median(rounds))}/"
+            f"{max(rounds)} & {fmt_sci(max(r['val_err'] for r in recs))} & "
+            f"{fmt_sci(max(r['delta'] for r in recs))} & "
+            f"{fmt_sci(max(r['eps'] for r in recs))} \\\\")
+        print(f"[scaling n={n}] {n_trials} trials in {dt:.1f}s; rounds "
+              f"{min(rounds)}-{max(rounds)}")
+    return rows
+
+
+def cycling_probe(rng, n_trials=40, cap=400, long_cap=2000):
+    """Support-rule-only termination probe on the duplicated-column
+    generator (non-unique optima): with the value rule disabled, does the
+    support-stability test ever fire?"""
+    instances = []
+    n_nonterm = 0
+    first_nonterm = None
+    for trial in range(n_trials):
+        A, b = make_duplicate_instance(rng)
+        nb = int(rng.choice((4, 8, 16)))
+        fi = int(rng.choice((2, 4)))
+        _, _, vals, reason = dc_nnls(A, b, nblocks=nb, fan_in=fi,
+                                     max_rounds=cap, value_rule=False)
+        if reason == "max_rounds":
+            n_nonterm += 1
+            if first_nonterm is None:
+                first_nonterm = (A, b, nb, fi)
+    print(f"[cycling probe] support rule alone: {n_nonterm}/{n_trials} "
+          f"failed to stabilize within {cap} rounds")
+    if first_nonterm is None:
+        return n_nonterm, None
+    # Extend the first non-terminating run and look for a support cycle.
+    A, b, nb, fi = first_nonterm
+    n = A.shape[1]
+    blocks = [list(B) for B in np.array_split(np.arange(n), nb)]
+    x_full = nnls_on(A, b, range(n))
+    v_full = ssr(A, b, x_full)
+    R = set()
+    supports, values = [], []
+    for _ in range(long_cap):
+        R, x, diag = dc_round(A, b, blocks, R, fan_in=fi, check=False)
+        supports.append(frozenset(R))
+        values.append(diag["v"])
+    period = None
+    tail = supports[-60:]
+    for p in range(1, 9):
+        if all(tail[i] == tail[i - p] for i in range(p, len(tail))):
+            period = p
+            break
+    n_distinct = len(set(tail))
+    v_ok = all(abs(v - v_full) <= 1e-9 * (1.0 + v_full)
+               for v in values[3:])
+    print(f"[cycling probe] extended run ({long_cap} rounds): period "
+          f"{period}, {n_distinct} distinct supports in tail, "
+          f"v_k = v* from round 4 on: {v_ok}")
+    return n_nonterm, (period, n_distinct, v_ok)
 
 
 def fmt_sci(x):
@@ -96,7 +184,9 @@ def make_figure(smooth, all_recs):
 
     # Panel (a): relative excess SSR per round, smooth-kernel suite.
     # After a trial terminates, its terminal value is carried forward so the
-    # per-round median is over all trials at every round.
+    # per-round median is over all trials at every round.  Terminal values
+    # sit at the roundoff scale (some are nonpositive); they are clipped at
+    # the display floor, which the caption discloses.
     floor = 1e-16
     max_r = max(r["rounds"] for r in smooth)
     curves = []
@@ -117,18 +207,30 @@ def make_figure(smooth, all_recs):
     ax1.annotate("round 1 = non-iterated scheme", xy=(1, med[0]),
                  xytext=(1.55, med[0] * 2.4), fontsize=7.5, color=MUTED,
                  arrowprops=dict(arrowstyle="-", color=MUTED, lw=0.7))
-    ax1.annotate("roundoff floor", xy=(int(np.median([r['rounds'] for r in smooth])), 2 * floor),
-                 xytext=(2.1, 8 * floor), fontsize=7.5, color=MUTED)
     ax1.set_xticks(range(1, max_r + 1))
 
-    # Panel (b): rounds to termination, all suites pooled
-    rounds_all = [r["rounds"] for r in all_recs]
-    bins = np.arange(min(rounds_all) - 0.5, max(rounds_all) + 1.5)
-    ax2.hist(rounds_all, bins=bins, color=BLUE, edgecolor="white", lw=1.5)
+    # Panel (b): rounds to termination, stacked by suite (the regimes are
+    # nearly disjoint and pooling would hide that).  Colors: first four
+    # slots of the validated categorical palette (adjacent-pair safe).
+    suite_order = ["smooth", "lattice", "Gaussian", "duplicated"]
+    suite_cols = {"smooth": "#2a78d6", "lattice": "#eb6834",
+                  "Gaussian": "#1baf7a", "duplicated": "#eda100"}
+    rounds_all = [r["rounds"] for recs in all_recs.values() for r in recs]
+    lo, hi = min(rounds_all), max(rounds_all)
+    xs = np.arange(lo, hi + 1)
+    bottom = np.zeros(len(xs))
+    for name in suite_order:
+        counts = np.array([sum(1 for r in all_recs[name]
+                               if r["rounds"] == k) for k in xs])
+        ax2.bar(xs, counts, bottom=bottom, color=suite_cols[name],
+                edgecolor="white", lw=0.8, label=name)
+        bottom += counts
+    ax2.legend(fontsize=6.5, frameon=False, loc="upper right",
+               handlelength=1.0, labelspacing=0.3)
     ax2.set_xlabel("rounds to termination", fontsize=9, color=INK)
     ax2.set_ylabel("trials", fontsize=9, color=INK)
     ax2.set_title("(b) rounds to termination", fontsize=9, color=INK)
-    ax2.set_xticks(range(min(rounds_all), max(rounds_all) + 1))
+    ax2.set_xticks(range(lo, hi + 1))
 
     for ax in (ax1, ax2):
         ax.spines[["top", "right"]].set_visible(False)
@@ -152,21 +254,39 @@ def main():
     lattice = run_suite("lattice-interlaced", make_lattice_instance, 40, rng2,
                         blocks_fn=interlaced_blocks)
 
-    print("\n--- LaTeX table rows ---")
+    print("\n--- LaTeX table rows (Table 1) ---")
     print(latex_row("smooth correlated kernels", smooth))
     print(latex_row("2-D lattice, interlaced subgrids", lattice))
     print(latex_row("i.i.d.\\ Gaussian", gauss))
     print(latex_row("duplicated columns", dup))
 
+    all_v = [r["v_full"] for recs in (smooth, gauss, dup, lattice)
+             for r in recs]
+    print(f"\nmax v* across all 200 trials: {max(all_v):.4g}")
+    term = [(r["vals"][-1] - r["v_full"]) / r["v_full"] for r in smooth]
+    print(f"smooth terminal relative excess: min {min(term):.3g}, "
+          f"max {max(term):.3g}")
+
     sp = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in smooth])
-    print(f"\nsmooth suite: single-pass relative excess median "
+    print(f"smooth suite: single-pass relative excess median "
           f"{np.median(sp):.3f}, max {np.max(sp):.3f}; "
           f"suboptimal in {sum(r['sp_subopt'] for r in smooth)}/60")
     spl = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in lattice])
     print(f"lattice suite: single-pass relative excess median "
           f"{np.median(spl):.3f}, max {np.max(spl):.3f}; "
           f"suboptimal in {sum(r['sp_subopt'] for r in lattice)}/40")
-    make_figure(smooth, smooth + gauss + dup + lattice)
+
+    print("\n--- LaTeX table rows (Table 2, scaling) ---")
+    rng3 = np.random.default_rng(20260809)
+    for row in run_scaling([960, 3840, 15360], 6, rng3):
+        print(row)
+
+    print()
+    rng4 = np.random.default_rng(20260810)
+    cycling_probe(rng4)
+
+    make_figure(smooth, {"smooth": smooth, "lattice": lattice,
+                         "Gaussian": gauss, "duplicated": dup})
 
 
 if __name__ == "__main__":

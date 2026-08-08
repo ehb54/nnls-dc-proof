@@ -120,10 +120,13 @@ def dc_round(A, b, blocks, R, fan_in=2, check=True):
 
 
 def dc_nnls(A, b, nblocks=None, blocks=None, iterative=True, fan_in=2,
-            max_rounds=500, check_monotone=True):
+            max_rounds=500, check_monotone=True, value_rule=True):
     """Full D&C-NNLS.  Pass either nblocks (contiguous index blocks) or an
     explicit `blocks` partition (list of index lists, e.g. interlaced
     subgrids).  iterative=False reproduces the basic Text 1 scheme.
+    value_rule=False disables the value/stall test, stopping only on
+    support stability (used to probe non-termination of the support
+    test alone under non-unique optima).
     Returns (x, support, per-round values, stopping reason)."""
     n = A.shape[1]
     if blocks is None:
@@ -139,7 +142,7 @@ def dc_nnls(A, b, nblocks=None, blocks=None, iterative=True, fan_in=2,
             assert v_new <= vals[-1] + 1e-9 * (1.0 + abs(vals[-1])), \
                 "round-to-round monotonicity violated"
         vals.append(v_new)
-        stalled = len(vals) >= 2 and \
+        stalled = value_rule and len(vals) >= 2 and \
             vals[-1] >= vals[-2] - 1e-12 * max(1.0, abs(vals[-2]))
         fixed = (R_new == R)
         R, x = R_new, x_new

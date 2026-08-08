@@ -370,9 +370,10 @@ would have delivered.
 Theorem 1's bound ($\le|V|\le 2^n$ rounds) is combinatorial, in the same
 spirit as finite-termination results for active-set methods and the
 simplex method, and we make no polynomial claim. The empirical record —
-3–7 rounds in the paper, 2–9 (median 3–6) across the 160 randomized
-instances in the companion script — reflects the benign structure of
-smooth-kernel design matrices, not the worst case.
+3–7 rounds in the paper, 2–13 across the 200 randomized instances in
+the companion script (interlaced-subgrid partitions take the longest)
+— reflects the benign structure of smooth-kernel design matrices, not
+the worst case.
 
 ### 8.3 Why the pieces stay small (memory)
 
@@ -434,21 +435,31 @@ be seen as a coarse-grained, parallel relative.
 
 `verify.py` (same directory; NumPy/SciPy) implements §3 exactly (atomic
 merges, configurable block counts and fan-in) and checks, in every trial,
-the per-node tree-descent inequality (Lemma 4), round monotonicity
-(Lemma 5), terminal value equality against full-grid NNLS, and the direct
-global KKT certificate $\max_j a_j^{\mathsf T}r\le 0$ (up to roundoff).
-Results (seed 20260807):
+the parent–child tree-descent inequality at every merge node (Lemma 4),
+round monotonicity (Lemma 5), terminal value equality against full-grid
+NNLS, and BOTH KKT residuals of the tolerance analysis — the pricing
+residual $\delta=\max(0,\max_j a_j^{\mathsf T}r)$ and the
+complementarity residual
+$\varepsilon=\max(0,-(A^{\mathsf T}r)^{\mathsf T}x)$ (pricing alone is
+not sufficient for optimality). Single-pass suboptimality uses the
+manuscript's criterion $v_{\mathrm{sp}}-v^*>10^{-9}(1+v^*)$. Results
+(seeds 20260807/20260808):
 
-| experiment | trials | rounds (min/med/max) | worst rel. value error | worst scaled KKT | single pass suboptimal |
-|---|---|---|---|---|---|
-| AUC-like smooth correlated kernels | 60 | 4 / 6 / 9 | 2.2e-16 | 2.5e-16 | 60/60 (median +18% SSR) |
-| iid Gaussian designs | 60 | 2 / 3 / 3 | 3.1e-28 | 8.8e-16 | 39/60 |
-| exact duplicate columns (non-unique optima) | 40 | 2 / 4 / 9 | 9.5e-17 | 8.5e-16 | 40/40 |
+| experiment | trials | rounds (min/med/max) | worst value gap | worst δ | worst ε | single pass suboptimal |
+|---|---|---|---|---|---|---|
+| AUC-like smooth correlated kernels | 60 | 4 / 6 / 9 | 2.2e-16 | 2.5e-16 | 1.1e-13 | 60/60 (median +18% SSR) |
+| 2-D lattice, interlaced subgrids | 40 | 7 / 10 / 13 | 4.4e-16 | 2.7e-16 | 1.3e-13 | 40/40 (median 8.4× excess) |
+| iid Gaussian designs | 60 | 2 / 3 / 3 | 3.1e-28 | 8.8e-16 | 6.0e-14 | 33/60 |
+| exact duplicate columns (non-unique optima) | 40 | 2 / 4 / 9 | 9.5e-17 | 8.5e-16 | 7.4e-14 | 39/40 |
 
 The 4-column counterexample of §6 is reproduced exactly
-($\mathrm{SSR}=1/12$, violation $1/6$), and one refinement round restores
-$\mathrm{SSR}=0$. The observed round counts bracket the 3–7 reported in the
-paper.
+($\mathrm{SSR}=1/12$, i.e. $F=1/24$; violation $1/6$), and one
+refinement round restores $\mathrm{SSR}=0$. A scaling probe extends the
+smooth-kernel generator to $n=15360$ (64×) with rounds staying at 6–9
+and roundoff-level agreement, and a support-rule-only probe on the
+duplicated-column generator exhibits non-termination (a period-3 cycle
+among optimal supports), confirming that the value rule is what
+guarantees halting; see `experiments.py`.
 
 ## References
 
