@@ -64,9 +64,13 @@ def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
             "v_sp": vals_sp[-1],
             "vals": vals,
             "rounds": len(vals),
+            "reason": reason,
             "val_err": abs(vals[-1] - v_full) / max(1.0, v_full),
             "delta": delta / scale,
             "eps": eps / max(1.0, v_full),
+            "delta_abs": delta,
+            "eps_abs": eps,
+            "x1": float(np.sum(x_full)),
             "sp_subopt": vals_sp[-1] - v_full > 1e-9 * (1.0 + v_full),
             "supp_match": set(map(int, np.flatnonzero(x > 0.0))) == full_support,
         })
@@ -94,11 +98,18 @@ def run_scaling(sizes, n_trials, rng):
             delta, eps = kkt_residuals(A, b, x)
             recs.append({
                 "rounds": len(vals),
+                "reason": reason,
+                "v_full": v_full,
                 "val_err": abs(vals[-1] - v_full) / max(1.0, v_full),
                 "delta": delta / scale,
                 "eps": eps / max(1.0, v_full),
             })
         dt = time.time() - t0
+        rr = {}
+        for r in recs:
+            rr[r["reason"]] = rr.get(r["reason"], 0) + 1
+        print(f"  [scaling n={n}] reasons: {rr}; "
+              f"max v*: {max(r['v_full'] for r in recs):.4g}")
         rounds = [r["rounds"] for r in recs]
         rows.append(
             f"$n={n}$ & {n_trials} & {min(rounds)}/{int(np.median(rounds))}/"
@@ -266,6 +277,47 @@ def main():
     term = [(r["vals"][-1] - r["v_full"]) / r["v_full"] for r in smooth]
     print(f"smooth terminal relative excess: min {min(term):.3g}, "
           f"max {max(term):.3g}")
+
+    # Rounds of the three random-block suites relative to [7]'s 3-7 range.
+    rb = smooth + gauss + dup
+    in37 = sum(1 for r in rb if 3 <= r["rounds"] <= 7)
+    print(f"random-block suites: {in37}/{len(rb)} trials inside 3-7 rounds; "
+          f"span {min(r['rounds'] for r in rb)}-"
+          f"{max(r['rounds'] for r in rb)}")
+
+    # Exact-feasibility cross-tabs (v* at roundoff zero).
+    feas_thresh = 1e-12
+    for name, recs in (("gaussian", gauss), ("duplicated", dup)):
+        feas = [r for r in recs if r["v_full"] < feas_thresh]
+        nfeas = [r for r in recs if r["v_full"] >= feas_thresh]
+        def _tab(rs):
+            t = {}
+            for r in rs:
+                t[r["reason"]] = t.get(r["reason"], 0) + 1
+            m = sum(r["supp_match"] for r in rs)
+            return t, m
+        tf, mf = _tab(feas)
+        tn, mn = _tab(nfeas)
+        print(f"{name}: exactly feasible {len(feas)}/{len(recs)} "
+              f"(reasons {tf}, supp match {mf}); "
+              f"v*>0: {len(nfeas)} (reasons {tn}, supp match {mn})")
+    n_exact_feas = sum(1 for recs in (smooth, gauss, dup, lattice)
+                       for r in recs if r["v_full"] < feas_thresh)
+    print(f"exactly feasible trials overall: {n_exact_feas}/200")
+
+    # A posteriori certified gap (Prop 2 with M = ||x*||_1 from the
+    # reference solve) for the runs that terminated on the stall rule.
+    # Prop 2 bounds F; report in v = 2F units.
+    worst = 0.0
+    n_stall = 0
+    for recs in (smooth, gauss, dup, lattice):
+        for r in recs:
+            if r["reason"] == "value_stall":
+                n_stall += 1
+                worst = max(worst,
+                            2.0 * (r["delta_abs"] * r["x1"] + r["eps_abs"]))
+    print(f"certified gap bound 2(delta*||x*||_1 + eps) over the "
+          f"{n_stall} stall-rule runs: max {worst:.3g}")
 
     sp = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in smooth])
     print(f"smooth suite: single-pass relative excess median "

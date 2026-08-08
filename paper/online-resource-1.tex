@@ -45,8 +45,8 @@ Supplementary material for \emph{Exactness of an iterated
 divide-and-conquer method for large-scale nonnegative least squares}
 (Optimization Letters). This guide is explanatory and restates the
 termination argument geometrically, in the language of the motivating
-application; the article's numbered results and formal proofs are
-authoritative, and are cited here by their numbers.
+application; the article's numbered results are authoritative and are
+cited by number.
 
 \section*{1\quad The physical picture}
 
@@ -117,9 +117,9 @@ increases.
 Suppose the current solution is not the full-grid optimum. By the
 pricing test, some column satisfies $a_{j_0}^{\T}r>0$ --- the residual
 points partly toward a component not in use. That column may have been
-discarded in an earlier round, but the blocks cover the whole matrix,
-so it reappears in some block --- a block that also carries the entire
-current support. That block can therefore reproduce the current
+discarded earlier, but the blocks cover the whole matrix, so it
+reappears in some block that also carries the entire current support.
+That block can therefore reproduce the current
 solution \emph{and} add a little of $a_{j_0}$, which by the expansion
 above strictly reduces the misfit; the exact block solver must do at
 least this well, and Step~1's merge inequalities carry the gain to the
@@ -142,9 +142,13 @@ previous answer must already have been globally optimal --- otherwise
 Step~2 would have forced a strict decrease. An unchanged support
 implies an unchanged value (Lemma~4(ii)), so the implemented
 ``results no longer vary'' test is a sound proof of global optimality,
-not merely an empirical stopping rule (Theorem~1(b)). Proposition~1 of
-the article shows why the feedback matters: a single pass without it
-can lock in a strictly suboptimal answer.
+not merely an empirical stopping rule (Theorem~1(b)). One refinement:
+the support test alone is sound but not complete --- under non-unique
+optima, supports can cycle among optimal solutions indefinitely --- so
+it is the \emph{value} test that guarantees halting, at round $K{+}1$
+exactly, $K$ being the first optimal round (Theorem~1(c)).
+Proposition~1 of the article shows why the feedback matters: a single
+pass without it can lock in a strictly suboptimal answer.
 
 \section*{4\quad What ``identical to the full solution'' means}
 
@@ -172,10 +176,11 @@ coverage and feedback):
 \item \textbf{Feedback of the incumbent.} The previous solution's
   complete support is included in every block. Without it, blocks
   cannot reproduce the current solution and Step~1 fails.
-\item \textbf{Whole-support merging.} Merge stages pass complete
-  returned supports upward, never splitting or truncating them.
-  Without it, a gain found in a block can be lost on the way to the
-  root, and the certificate of Step~4 loses its soundness proof.
+\item \textbf{Whole-support merging.} Every merge candidate contains
+  the complete returned support of each of its children
+  ($C_\nu\supseteq\bigcup_\mu U_\mu$). Without it, a gain found in a
+  block can be lost on the way to the root, and the certificate of
+  Step~4 loses its soundness proof.
 \end{enumerate}
 
 \noindent In one sentence: \emph{every omitted column gets another
