@@ -75,8 +75,8 @@ def kkt_residuals(A, b, x):
         delta = max(0, max_j a_j^T r)   (pricing residual)
         eps   = max(0, -(A^T r)^T x)    (complementarity residual)
     x >= 0 is a global solution iff delta = eps = 0 (up to roundoff).
-    Pricing alone is not sufficient: A=I, b=1, x=2 has delta = 0 but
-    eps = 1 and is not optimal."""
+    Pricing alone is not sufficient: A=I (m x m), b=ones(m), x=2*ones(m)
+    has delta = 0 but eps = 2m and is not optimal."""
     g = A.T @ (b - A @ x)
     delta = max(0.0, float(np.max(g)))
     eps = max(0.0, float(-(g @ x)))

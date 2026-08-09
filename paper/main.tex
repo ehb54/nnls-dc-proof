@@ -883,11 +883,12 @@ and the per-round pricing sweep of Section~\ref{sec:inexact} turns
 Proposition~\ref{prop:inexact} into a per-run optimality certificate
 whenever a bound $M\ge\lVert x^*\rVert_1$ is available. How the
 shipped UltraScan implementation relates to (H1)--(H3) and to the
-stopping certificate is examined in Online Resource~2; its two
-headline limits are that the grid is screened by column norm before
-solving --- the certificate then applies to the screened grid rather
-than the nominal one --- and that only its unchanged-result stopping
-exits carry the certificate.
+stopping certificate is examined in Online Resource~2; its main scope
+limits are that the analysis covers the noise-free configuration
+only, that the grid is screened by column norm before solving --- the
+certificate then applies to the screened grid rather than the nominal
+one --- and that only its unchanged-result stopping exits carry the
+certificate.
 
 \paragraph{Limitations.}
 The guarantee is stated for exact subproblem solves; floating-point

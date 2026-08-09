@@ -322,7 +322,7 @@ def main():
                 d_hi = max(d_hi, r["delta_abs"])
     print(f"certified gap bound 2(delta*||x*||_1 + eps) over the "
           f"{n_stall} stall-rule runs: max {worst:.3g}; "
-          f"M = ||x*||_1 in [{m_lo:.3g}, {m_hi:.3g}]; "
+          f"M = ||x*||_1 in [{m_lo:.8g}, {m_hi:.8g}]; "
           f"max absolute delta {d_hi:.3g}")
 
     sp = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in smooth])

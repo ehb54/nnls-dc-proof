@@ -97,10 +97,10 @@ below that range bind first. The interactive 2DSA controls
 (\texttt{programs/us\_2dsa/us\_analysis\_control\_2d.cpp}) drive a
 separate threaded implementation with its own relaxed stall tolerance
 ($10^{-12}$ --- the relaxation the article's Section~7 notes is not
-covered by Theorem~1(b)) and an iteration default of 1, that is,
-refinement disabled: the non-iterated scheme of the article's
-Proposition~1 (the default becomes 3 when the refinement option is
-enabled).
+covered by Theorem~1(b)) and an iteration default of 1. A default of
+1 means refinement is off: the default interactive run is the
+non-iterated scheme of the article's Proposition~1 (the count becomes
+3 when the refinement option is enabled).
 
 \medskip
 \noindent The practical rule these notes support: treat a
