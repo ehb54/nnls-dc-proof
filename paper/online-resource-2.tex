@@ -1,0 +1,102 @@
+% Online Resource 2 for:
+%   E. H. Brookes, "Exactness of an iterated divide-and-conquer method
+%   for large-scale nonnegative least squares", Optimization Letters.
+% Springer publishes supplementary PDFs as supplied; typeset to match
+% the article (sn-jnl class, sn-mathphys-num style).
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+
+\usepackage{amsmath,amssymb,amsfonts}
+
+\raggedbottom
+
+\newcommand{\R}{\mathbb{R}}
+
+\hypersetup{
+  pdftitle={Online Resource 2: Notes on the UltraScan implementation},
+  pdfauthor={Emre H. Brookes},
+}
+
+\begin{document}
+
+\title[Online Resource 2]{Online Resource 2:\\ Notes on the UltraScan
+implementation}
+
+\author*[1]{\fnm{Emre H.}
+\sur{Brookes}\,\orcid{https://orcid.org/0000-0001-7348-6476}}%
+\email{emre.brookes@umontana.edu}
+
+\affil[1]{\orgdiv{Department of Chemistry \& Biochemistry},
+\orgname{University of Montana}, \orgaddress{\city{Missoula},
+\state{Montana}, \country{USA}}}
+
+\maketitle
+
+\noindent
+Supplementary material for \emph{Exactness of an iterated
+divide-and-conquer method for large-scale nonnegative least squares}
+(Optimization Letters). The article's results are self-contained; this
+note records, for completeness, how the divide-and-conquer NNLS
+implementation shipped in the open-source UltraScan package relates to
+the article's conditions (H1)--(H3) and to its stopping certificate.
+Source locations refer to UltraScan release v4.1.0; numbered results
+are the article's.
+
+\section*{1\quad Merge and feedback structure: (H2) and (H3)}
+
+The 2DSA master
+(\texttt{programs/us\_mpi\_analysis/2dsa\_master.cpp}, functions
+\texttt{process\_solutes} and \texttt{iterate}) accumulates each
+worker's complete solute vector into a depth-indexed bin, ships a bin
+whole to the next depth when adding the following result would exceed
+the size cap, and, at each refinement iteration, unions the previous
+iteration's nonzero solutes into every subgrid job with duplicates
+removed. Returned solute sets are therefore never split across merge
+jobs, and every leaf carries the incumbent --- the canonical
+instantiation of conditions (H2) and (H3), in the atomic
+whole-set-packing form the article's Section~8 recommends.
+
+\section*{2\quad Grid screening: the scope of (H1)}
+
+The block solver screens the grid before solving: every column whose
+Euclidean norm falls below a fixed cutoff is dropped from the
+subproblem (\texttt{utils/us\_solve\_sim.cpp},
+\texttt{\_NORM\_CUTOFF\_}~$=1.00$). The screen depends only on the
+column, not on the block or the round, so the deployed method is
+Algorithms~1--2 of the article applied to the screened set
+$S'=\{j:\lVert a_j\rVert_2\ge1\}$; every result, including
+Theorem~1's certificate, transfers verbatim with $S'$ in place of
+$S$, and $R\subseteq S'$ holds automatically since a screened column
+never carries a positive amplitude. The scope consequence is that the
+certificate then asserts global optimality over the \emph{screened}
+grid rather than the nominal one; the screen is a heuristic discard of
+the kind the article's Section~1 contrasts with safe screening --- a
+column with $\lVert a_j\rVert_2$ just below the cutoff can still price
+positively against the merged residual.
+
+\section*{3\quad Stopping logic: which exits are certified}
+
+The refinement loop has four exits. Two are certified: iteration ends
+when the variance change falls below $10^{-100}$
+(\texttt{min\_variance\_improvement}) --- effectively exact value
+equality --- or when the solute set repeats with all concentrations
+within 10\%, a test stricter than support repetition; either branch
+is sound by Theorem~1(b). Two are not certified: the iteration cap,
+whose interactive default is 3
+(\texttt{us\_analysis\_control\_2d.cpp}), typically binds before the
+certified tests --- which fired at rounds 4--13 in the
+correlated-kernel suites of the article's Section~7 --- and a
+rollback branch ends refinement with the previous iterate when an
+iteration's variance worsens, a situation unreachable under
+(H1)--(H3) in exact arithmetic (the article's Lemma~6) but live in
+floating point. A run exiting on the cap or the rollback returns a
+feasible iterate with no optimality guarantee.
+
+\medskip
+\noindent The practical rule these notes support: treat a
+divide-and-conquer run as certified by the article's theory exactly
+when it terminates on the unchanged-result test, and read the
+certificate as global optimality over the screened grid. None of the
+above bears on the article's theorems; it locates the shipped code
+relative to their hypotheses.
+
+\end{document}

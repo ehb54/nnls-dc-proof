@@ -878,38 +878,9 @@ further practical consequences: stopping on an unchanged \emph{value}
 is sound and robust under non-uniqueness (Remark~\ref{rem:stopping}),
 and the per-round pricing sweep of Section~\ref{sec:inexact} turns
 Proposition~\ref{prop:inexact} into a per-run optimality certificate
-whenever a bound $M\ge\lVert x^*\rVert_1$ is available.
-
-\paragraph{The UltraScan implementation.}
-The shipped code
-(\texttt{programs/us\_mpi\_analysis/2dsa\_master.cpp}, functions
-\texttt{process\_solutes} and \texttt{iterate}, release v4.1.0)
-instantiates (H2) and (H3) canonically: the 2DSA master accumulates
-each worker's complete solute vector into a depth-indexed bin, ships a
-bin whole when adding the next result would exceed the size cap, and
-unions the previous iteration's nonzero solutes into every subgrid
-job. One scope note: the block solver screens the grid before solving,
-dropping every column whose Euclidean norm falls below a fixed cutoff
-(\texttt{utils/us\_solve\_sim.cpp}). The screen depends only on the
-column, so the deployed method is
-Algorithms~\ref{alg:round}--\ref{alg:iter} on the screened set
-$S'=\{j:\lVert a_j\rVert_2\ge1\}$, every result transferring verbatim
-with $S'$ for $S$; the certificate is then optimality over the
-screened grid rather than the nominal one --- a heuristic discard of
-the kind Section~\ref{sec:intro} contrasts with safe screening. The
-stopping logic has four exits. Two are certified: variance change
-below $10^{-100}$ --- effectively exact value equality --- or a
-repeated solute set with concentrations within 10\%, stricter than
-$R_k=R_{k-1}$; either is sound by Theorem~\ref{thm:main}(b). Two are
-not: the iteration cap, whose interactive default of 3 typically binds
-before the certified tests (which fired at rounds 4--13 in the
-correlated-kernel suites of Section~\ref{sec:numerics}), and a
-rollback that ends refinement with the previous iterate when an
-iteration's variance worsens --- unreachable under (H1)--(H3) in
-exact arithmetic (Lemma~\ref{lem:mono}), but live in floating point.
-A run exiting on either returns a feasible iterate with no optimality
-guarantee; the certified runs are exactly those that terminate on the
-unchanged-result test.
+whenever a bound $M\ge\lVert x^*\rVert_1$ is available. How the
+shipped UltraScan implementation relates to these conditions and to
+the stopping certificate is examined in Online Resource~2.
 
 \paragraph{Limitations.}
 The guarantee is stated for exact subproblem solves; floating-point
@@ -993,7 +964,9 @@ The author declares no competing interests.
 Online Resource~1: an intuitive guide to the finite-termination and
 global-optimality proof, including a residual-based geometric
 interpretation and a summary of the required algorithmic assumptions
-(PDF).
+(PDF). Online Resource~2: notes relating the shipped UltraScan
+implementation to conditions (H1)--(H3) and to the stopping
+certificate (PDF).
 
 \setlength{\bibsep}{2pt plus 0.3ex}
 \bibliography{refs}
