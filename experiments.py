@@ -278,7 +278,8 @@ def main():
     print(f"smooth terminal relative excess: min {min(term):.3g}, "
           f"max {max(term):.3g}")
 
-    # Rounds of the three random-block suites relative to [7]'s 3-7 range.
+    # Rounds of the three random-block suites relative to the 3-7 range
+    # reported in the SC'06 paper (reference [9] of the manuscript).
     rb = smooth + gauss + dup
     in37 = sum(1 for r in rb if 3 <= r["rounds"] <= 7)
     print(f"random-block suites: {in37}/{len(rb)} trials inside 3-7 rounds; "
@@ -310,14 +311,19 @@ def main():
     # Prop 2 bounds F; report in v = 2F units.
     worst = 0.0
     n_stall = 0
+    m_lo, m_hi, d_hi = np.inf, 0.0, 0.0
     for recs in (smooth, gauss, dup, lattice):
         for r in recs:
             if r["reason"] == "value_stall":
                 n_stall += 1
                 worst = max(worst,
                             2.0 * (r["delta_abs"] * r["x1"] + r["eps_abs"]))
+                m_lo, m_hi = min(m_lo, r["x1"]), max(m_hi, r["x1"])
+                d_hi = max(d_hi, r["delta_abs"])
     print(f"certified gap bound 2(delta*||x*||_1 + eps) over the "
-          f"{n_stall} stall-rule runs: max {worst:.3g}")
+          f"{n_stall} stall-rule runs: max {worst:.3g}; "
+          f"M = ||x*||_1 in [{m_lo:.3g}, {m_hi:.3g}]; "
+          f"max absolute delta {d_hi:.3g}")
 
     sp = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in smooth])
     print(f"smooth suite: single-pass relative excess median "

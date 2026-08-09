@@ -19,8 +19,8 @@ relative quantities are unaffected).
 Floating-point stopping rule (dc_nnls).  A run terminates when
   (a) the returned support is unchanged from the previous round
       ("support_fixed"), or
-  (b) the objective fails to improve by more than a relative tolerance of
-      1e-12 ("value_stall"), or
+  (b) the objective fails to improve by more than 1e-12 * max(1, |v|)
+      ("value_stall"), or
   (c) max_rounds is reached ("max_rounds"; never observed).
 The stopping reason is returned with the result.
 

@@ -176,9 +176,9 @@ coverage and feedback):
 \item \textbf{Feedback of the incumbent.} The previous solution's
   complete support is included in every block. Without it, blocks
   cannot reproduce the current solution and Step~1 fails.
-\item \textbf{Whole-support merging.} Every merge candidate contains
-  the complete returned support of each of its children
-  ($C_\nu\supseteq\bigcup_\mu U_\mu$). Without it, a gain found in a
+\item \textbf{Whole-support merging.} Merge stages pass complete
+  returned supports upward, never splitting or truncating them
+  (condition (H3) of the article). Without it, a gain found in a
   block can be lost on the way to the root, and the certificate of
   Step~4 loses its soundness proof.
 \end{enumerate}

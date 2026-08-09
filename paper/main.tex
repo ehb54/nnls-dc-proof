@@ -55,8 +55,8 @@ divide-and-conquer method for large-scale nonnegative least squares}
 Model-based fitting of experimental data frequently leads to nonnegative
 least squares (NNLS) problems whose direct solution exceeds a single
 workstation's memory capacity or practical time budget; analytical
-ultracentrifugation analyses use grids of $10^{5}$--$10^{6}$ basis
-functions. A
+ultracentrifugation analyses use grids of up to $1.5\times10^{6}$
+basis functions. A
 divide-and-conquer method introduced at SC'06 addresses this bottleneck:
 the parameter set is partitioned, NNLS is solved on each block, the
 supports of the block solutions are unioned and re-solved, and, in an
@@ -107,11 +107,11 @@ two-dimensional spectrum analysis (2DSA) implemented in
 UltraScan~\cite{demeler2005,brookes2010} solves such problems routinely.
 
 In practice the resolution of the analysis is limited by scale in two
-coupled ways: grids of $10^{5}$--$10^{6}$ basis functions --- the
-scale reported in~\cite{brookes2006}, which ran up to $5\times10^{6}$
-parameters on 512 nodes --- exceed the memory of a single
-workstation, and the cost of a direct NNLS solve grows superlinearly
-with the number of columns. Direct solvers have
+coupled ways: grids of $10^{5}$--$10^{6}$ basis functions --- within
+the $|S|=10^{3}$--$10^{6}$ range of~\cite{brookes2006}, whose largest
+demonstration is $1.5\times10^{6}$ parameters on 512 processors ---
+exceed the memory of a single workstation, and the cost of a direct
+NNLS solve grows superlinearly with the number of columns. Direct solvers have
 advanced considerably --- TNT-NN handles dense systems of size
 $45000\times45000$~\cite{myre2017}, and Lawson--Hanson variants with
 finite-convergence theory of their own continue to
@@ -182,24 +182,25 @@ finitely~\cite{vonhohenbalken1977,hearn1985,garcia2003}, and the
 strict-improvement step is the same device that underlies convergence
 proofs for working-set decomposition in support vector machine
 training~\cite{osuna1997,lin2001}. Greedy variants over the conic
-hull of a finite atom set --- fully corrective non-negative matching
+hull of an atom set --- fully corrective non-negative matching
 pursuit --- carry convergence rates in the same unbounded-cone
-setting~\cite{locatello2017}; here the atom set is a finite grid and
+setting, with no finiteness assumption on the
+atoms~\cite{locatello2017}; here the atom set is a finite grid and
 the result is exact finite termination with a sound equality test.
 What the present setting adds is not that skeleton but the structure
 around it: pricing is distributed over incumbent-carrying blocks whose
 exact solves realize a full pricing sweep (Lemma~\ref{lem:strict});
 merge trees with changing partitions discard columns at internal
 nodes, yet cannot lose ground under condition (H3)
-(Lemma~\ref{lem:tree}); retention is non-monotone --- a column
-discarded at one merge may be re-offered and readmitted rounds later
---- where restricted simplicial decomposition must bound retention
-and re-establish finiteness under the bound~\cite{hearn1985}; and the
-implemented stopping rule is proved to be a sound certificate, with a
-counterexample delimiting the non-iterated scheme. No working-set cap
-need be imposed here, because basic solutions returned by
-Lawson--Hanson-type solvers have supports bounded by the rank of $A$,
-which is what keeps the merge stages small in practice. Safe-screening
+(Lemma~\ref{lem:tree}); retention is decided by the exact restricted
+solves themselves --- the returned supports --- with no a-priori cap,
+in contrast to restricted simplicial decomposition, which bounds
+retention by rule and must re-establish finiteness under the
+bound~\cite{hearn1985}; and the implemented stopping rule is proved
+to be a sound certificate, with a counterexample delimiting the
+non-iterated scheme. The cap is unnecessary because basic solutions
+returned by Lawson--Hanson-type solvers have supports bounded by the
+rank of $A$, which is what keeps the merge stages small in practice. Safe-screening
 rules~\cite{folberth2020} are a complementary column-reduction
 mechanism whose discards are safe by construction and need no
 a~posteriori guarantee; the discards here are heuristic, which is
@@ -312,8 +313,10 @@ Theorem~\ref{thm:main}(b) certifies either.
 \caption{One round of divide-and-conquer NNLS}\label{alg:round}
 \begin{algorithmic}[1]
 \Require incumbent set $R\subseteq S$; leaf candidate sets
-$B_1,\dots,B_p$ with $R\subseteq B_i$ (canonically $B_i=S_i\cup R$);
-merge tree $\mathcal T$ with $p$ leaves
+$B_1,\dots,B_p$ with $\bigcup_i B_i=S$ and $R\subseteq B_i$; merge
+tree $\mathcal T$ with $p$ leaves and candidate sets
+$C_\nu\supseteq\bigcup_{\mu\ \mathrm{child\ of}\ \nu}U_\mu$
+(conditions (H2)--(H3))
 \For{$i=1,\dots,p$ (in parallel)}
   \State $y_i\gets$ minimizer of $\prob{B_i}$;\quad
          $U_i\gets\supp(y_i)$
@@ -378,10 +381,9 @@ implementations return such a solution~\cite{lawson1974}. When the
 solver does so, every returned set satisfies
 $|U|\le\operatorname{rank}(A)$ regardless of the size of its candidate
 set, which bounds the merge problems automatically; this is an
-implementation property rather than a consequence of optimality, since
-under non-uniqueness an arbitrary minimizer need not be basic (two
-identical columns admit the minimizer $(\tfrac12,\tfrac12)$, with
-support two and rank one). Neither the partition nor the tree is
+implementation property, not a consequence of optimality: under
+non-uniqueness an arbitrary minimizer need not be basic (two identical
+columns admit $(\tfrac12,\tfrac12)$, support two, rank one). Neither the partition nor the tree is
 required to be the same from round to round; in particular the
 moving-grid strategy of~\cite{brookes2006} --- interlaced subgrids of
 one fixed master grid --- is covered, while enlarging or regenerating
@@ -586,9 +588,9 @@ $\{(\sqrt2(t+\tfrac34),\,\tfrac14-t,\,\sqrt2(\tfrac34-t),\,
 $x_2+x_4=\tfrac12$. A retention threshold inside the blocks can repair
 particular instances, but the leniency required to keep a needed
 column is instance-dependent, and lenient retention forfeits the
-sparsification that motivates the method; no threshold fixed in
-advance is uniformly safe, whereas the refinement round repairs every
-instance because it re-prices every column against the merged
+sparsification that motivates the method; no threshold that actually
+sparsifies is uniformly safe, whereas the refinement round repairs
+every instance because it re-prices every column against the merged
 residual. In the
 motivating application the basis functions vary smoothly over the
 grid, so each block typically contains near-substitutes for the
@@ -635,13 +637,11 @@ floating-point active-set solves delivered $\varepsilon$ near the
 roundoff scale, so Proposition~\ref{prop:inexact} covers inexact
 subproblem solves as well as inexact pricing; $\delta=\varepsilon=0$
 recovers exactness. Turning the bound into a per-run
-certificate requires two ingredients. First, an explicit pricing sweep:
-the leaves do not supply one as a by-product, since each leaf prices
-its columns against its own local residual rather than the final merged
-residual $r(x_k)$; one distributed evaluation of $A^{\T}r(x_k)$ is
-required, which needs no additional matrix storage (each block prices
-its own columns against the broadcast residual) and is typically far
-cheaper than the NNLS solves. Second, an upper bound
+certificate requires two ingredients. First, an explicit pricing
+sweep: each leaf prices its columns against its own local residual,
+not the final merged residual $r(x_k)$, so one distributed evaluation
+of $A^{\T}r(x_k)$ is required --- no additional matrix storage, and
+typically far cheaper than the NNLS solves. Second, an upper bound
 $M\ge\lVert x^*\rVert_1$, since $\lVert x^*\rVert_1$ is not otherwise
 known: given both, the computable certificate is
 $F(x)-v^*\le\delta M+\varepsilon$. In the motivating application the
@@ -782,9 +782,13 @@ consistent with the failure of Theorem~\ref{thm:outputs}'s criterion,
 since $r^*=0$ makes $Z=S$, whose 160 columns in $\R^{40}$ are
 dependent. The stall-rule terminations are not covered by
 Theorem~\ref{thm:main}(b); supplying $M=\lVert x^*\rVert_1$ from the
-reference solve, Proposition~\ref{prop:inexact} certifies an
-optimality gap $2(\delta M+\varepsilon)\le3.0\times10^{-12}$ across
-all 93 such runs --- a genuine but coarser certificate than the
+reference solve --- $M\in[5.4,\,38.7]$ across these runs, and the very
+quantity a production run would have to bound by other means ---
+Proposition~\ref{prop:inexact} certifies an optimality gap
+$2(\delta M+\varepsilon)\le3.0\times10^{-12}$ across all 93 such runs,
+with $\delta$ and $\varepsilon$ in absolute units (the absolute
+$\delta$ reach $5.5\times10^{-14}$; Table~\ref{tab:trials}'s $\delta$
+column is normalized) --- a genuine but coarser certificate than the
 observed value gaps, as an a~posteriori bound must be --- while the
 107 support-rule terminations carry the exact certificate. Finally,
 with the value rule disabled the support test alone need not
@@ -869,33 +873,43 @@ basic-solution solvers return supports with at most
 $\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), a
 fan-in-$q$ atomic merge contains at most $q\operatorname{rank}(A)$
 candidate indices, giving a predictable memory bound while preserving
-the guarantee; this appears advisable in any implementation. The
-shipped UltraScan implementation follows this pattern
-(\texttt{us\_mpi\_analysis/2dsa\_master.cpp}, functions
-\texttt{process\_solutes} and \texttt{iterate}, release v4.1.0): the
-2DSA master accumulates each worker's complete solute vector into a
-depth-indexed bin, ships a bin whole when adding the next result would
-exceed the size cap, and unions the previous iteration's nonzero
-solutes into every subgrid job --- the canonical instantiation of (H2)
-and (H3). Its stopping rule is likewise the certified one: refinement
-ends when the variance change falls below $10^{-100}$ --- effectively
-exact value equality --- or when the solute set repeats with
-concentrations within 10\%, a test stricter than $R_k=R_{k-1}$;
-either branch is sound by Theorem~\ref{thm:main}(b). One caveat
-carries practical weight: the refinement loop is also capped by an
-iteration limit whose interactive default is 3, while the certified
-test fired at rounds 4--13 in the correlated-kernel suites of
-Section~\ref{sec:numerics}; a run that stops on the cap returns a
-feasible iterate with no optimality guarantee, so the runs certified
-by the theory are exactly those that terminate on the unchanged-result
-test. (The implementation also reverts an iteration whose variance
-worsens --- a branch Lemma~\ref{lem:mono} shows cannot be taken under
-(H1)--(H3).) Two further practical consequences: stopping on an
-unchanged \emph{value} is sound and robust under non-uniqueness
-(Remark~\ref{rem:stopping}), and the per-round pricing sweep of
-Section~\ref{sec:inexact} turns Proposition~\ref{prop:inexact} into a
-per-run optimality certificate whenever a bound
-$M\ge\lVert x^*\rVert_1$ is available.
+the guarantee; this appears advisable in any implementation. Two
+further practical consequences: stopping on an unchanged \emph{value}
+is sound and robust under non-uniqueness (Remark~\ref{rem:stopping}),
+and the per-round pricing sweep of Section~\ref{sec:inexact} turns
+Proposition~\ref{prop:inexact} into a per-run optimality certificate
+whenever a bound $M\ge\lVert x^*\rVert_1$ is available.
+
+\paragraph{The UltraScan implementation.}
+The shipped code
+(\texttt{programs/us\_mpi\_analysis/2dsa\_master.cpp}, functions
+\texttt{process\_solutes} and \texttt{iterate}, release v4.1.0)
+instantiates (H2) and (H3) canonically: the 2DSA master accumulates
+each worker's complete solute vector into a depth-indexed bin, ships a
+bin whole when adding the next result would exceed the size cap, and
+unions the previous iteration's nonzero solutes into every subgrid
+job. One scope note: the block solver screens the grid before solving,
+dropping every column whose Euclidean norm falls below a fixed cutoff
+(\texttt{utils/us\_solve\_sim.cpp}). The screen depends only on the
+column, so the deployed method is
+Algorithms~\ref{alg:round}--\ref{alg:iter} on the screened set
+$S'=\{j:\lVert a_j\rVert_2\ge1\}$, every result transferring verbatim
+with $S'$ for $S$; the certificate is then optimality over the
+screened grid rather than the nominal one --- a heuristic discard of
+the kind Section~\ref{sec:intro} contrasts with safe screening. The
+stopping logic has four exits. Two are certified: variance change
+below $10^{-100}$ --- effectively exact value equality --- or a
+repeated solute set with concentrations within 10\%, stricter than
+$R_k=R_{k-1}$; either is sound by Theorem~\ref{thm:main}(b). Two are
+not: the iteration cap, whose interactive default of 3 typically binds
+before the certified tests (which fired at rounds 4--13 in the
+correlated-kernel suites of Section~\ref{sec:numerics}), and a
+rollback that ends refinement with the previous iterate when an
+iteration's variance worsens --- unreachable under (H1)--(H3) in
+exact arithmetic (Lemma~\ref{lem:mono}), but live in floating point.
+A run exiting on either returns a feasible iterate with no optimality
+guarantee; the certified runs are exactly those that terminate on the
+unchanged-result test.
 
 \paragraph{Limitations.}
 The guarantee is stated for exact subproblem solves; floating-point
@@ -916,11 +930,11 @@ when systematic-noise elimination is interleaved between rounds as a
 separate processing step, the objective changes from round to round and
 the Lyapunov argument does not apply; this is consistent with the
 report in~\cite{brookes2006} that the iterative variant need not reach
-a fixed parameter set in that mode. If instead the noise degrees of
-freedom are carried as sign-unconstrained columns in every subproblem
-and solved jointly --- their optimality condition is plain
-stationarity, and the pricing of the constrained columns is unchanged
---- the guarantee is restored.
+a fixed parameter set in that mode. Carrying the noise degrees of
+freedom instead as sign-unconstrained columns in every subproblem,
+solved jointly --- plain stationarity replaces the sign condition, and
+the pricing of constrained columns is unchanged --- restores the
+guarantee.
 
 \paragraph{Extensions.}
 The termination and certificate arguments
@@ -981,7 +995,7 @@ global-optimality proof, including a residual-based geometric
 interpretation and a summary of the required algorithmic assumptions
 (PDF).
 
-\setlength{\bibsep}{3pt plus 0.3ex}
+\setlength{\bibsep}{2pt plus 0.3ex}
 \bibliography{refs}
 
 \end{document}
