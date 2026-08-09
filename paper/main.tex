@@ -55,8 +55,8 @@ divide-and-conquer method for large-scale nonnegative least squares}
 Model-based fitting of experimental data frequently leads to nonnegative
 least squares (NNLS) problems whose direct solution exceeds a single
 workstation's memory capacity or practical time budget; analytical
-ultracentrifugation analyses use grids of up to $1.5\times10^{6}$
-basis functions. A
+ultracentrifugation analyses use grids of $10^{5}$--$10^{6}$ basis
+functions ($1.5\times10^{6}$ in the largest reported run). A
 divide-and-conquer method introduced at SC'06 addresses this bottleneck:
 the parameter set is partitioned, NNLS is solved on each block, the
 supports of the block solutions are unioned and re-solved, and, in an
@@ -313,16 +313,15 @@ Theorem~\ref{thm:main}(b) certifies either.
 \caption{One round of divide-and-conquer NNLS}\label{alg:round}
 \begin{algorithmic}[1]
 \Require incumbent set $R\subseteq S$; leaf candidate sets
-$B_1,\dots,B_p$ with $\bigcup_i B_i=S$ and $R\subseteq B_i$; merge
-tree $\mathcal T$ with $p$ leaves and candidate sets
-$C_\nu\supseteq\bigcup_{\mu\ \mathrm{child\ of}\ \nu}U_\mu$
-(conditions (H2)--(H3))
+$B_1,\dots,B_p$ with $\bigcup_i B_i=S$ and $R\subseteq B_i$
+(condition (H2)); merge tree $\mathcal T$ with $p$ leaves
 \For{$i=1,\dots,p$ (in parallel)}
   \State $y_i\gets$ minimizer of $\prob{B_i}$;\quad
          $U_i\gets\supp(y_i)$
 \EndFor
 \For{each internal node $\nu$ of $\mathcal T$, leaves upward}
-  \State choose a candidate set $C_\nu$;\quad
+  \State choose $C_\nu\supseteq\bigcup_{\mu\ \mathrm{child\ of}\
+         \nu}U_\mu$ (condition (H3));\quad
          $z_\nu\gets$ minimizer of $\prob{C_\nu}$;\quad
          $U_\nu\gets\supp(z_\nu)$
 \EndFor
@@ -674,7 +673,8 @@ partitioning of~\cite{brookes2006}; (iii) \emph{i.i.d.\ Gaussian
 designs}, $40\times160$; and (iv) \emph{duplicated columns},
 $30\times120$ with every column repeated, so that minimizers are
 non-unique and the unconditional part of Theorem~\ref{thm:outputs} is
-exercised. In every trial, the parent--child inequality of
+exercised --- suites (iii) and (iv) partitioned into 4, 8, or 16
+contiguous blocks as in (i). In every trial, the parent--child inequality of
 Lemma~\ref{lem:tree} was asserted at every merge node and the
 inequality of Lemma~\ref{lem:mono} at every round (relative slack
 $10^{-9}$), the terminal value was compared against a full-grid solve,
@@ -736,8 +736,9 @@ termination across all 200 trials, stacked by suite}
 
 Four observations connect the experiments to the theory. First, the
 terminal agreement with the full-grid solve is at roundoff level in
-all 200 trials, and the stopping behavior separates by exact
-feasibility rather than by suite: the value rule fired in all 92
+all 200 trials, and the stopping behavior separates by \emph{exact
+feasibility} --- $v^*$ zero to roundoff, $b$ lying in the cone ---
+rather than by suite: the value rule fired in all 92
 exactly feasible trials (Gaussian 60/60; duplicated 32/32) and in one
 of the eight duplicated trials with $v^*>0$, while the support rule
 fired in the remaining 107 --- both kernel suites (60/60 and 40/40)
@@ -771,9 +772,9 @@ Proposition~\ref{prop:counter} is reproduced exactly: single-pass
 objective $\tfrac1{24}$ ($\lVert r\rVert^2=\tfrac1{12}$), pricing
 violation $\tfrac16$, and value $0$ after one refinement round.
 
-Exact feasibility is the hidden regime variable: in 92 of the 200
-trials (all 60 Gaussian, 32 of 40 duplicated) $b$ lies in the cone and
-$v^*$ is zero to roundoff, so the Gaussian value-gap entry in
+Exact feasibility is the hidden regime variable: it holds in 92 of
+the 200 trials (all 60 Gaussian, 32 of 40 duplicated), so the
+Gaussian value-gap entry in
 Table~\ref{tab:trials} is a difference of two near-zero optima and the
 meaningful certificate there is the KKT pair. Non-uniqueness
 accompanies it: in every Gaussian trial two optimal solutions with
@@ -782,7 +783,7 @@ consistent with the failure of Theorem~\ref{thm:outputs}'s criterion,
 since $r^*=0$ makes $Z=S$, whose 160 columns in $\R^{40}$ are
 dependent. The stall-rule terminations are not covered by
 Theorem~\ref{thm:main}(b); supplying $M=\lVert x^*\rVert_1$ from the
-reference solve --- $M\in[5.4,\,38.7]$ across these runs, and the very
+reference solve --- $M\in[5.39,\,38.71]$ across these runs, and the very
 quantity a production run would have to bound by other means ---
 Proposition~\ref{prop:inexact} certifies an optimality gap
 $2(\delta M+\varepsilon)\le3.0\times10^{-12}$ across all 93 such runs,
@@ -867,8 +868,10 @@ fixed-size chunks --- a natural memory-management choice, and one
 compatible with the description in \cite[Section~4.1]{brookes2006} ---
 can
 split a returned support across chunks, in which case
-Lemma~\ref{lem:tree} no longer applies and a round can in principle lose
-ground, taking the certificate's soundness proof with it. Since
+Lemma~\ref{lem:tree} no longer applies and a round can in principle
+lose ground, taking the certificate's soundness proof with it; the
+shipped UltraScan master packs whole sets and is not of this form
+(Online Resource~2). Since
 basic-solution solvers return supports with at most
 $\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), a
 fan-in-$q$ atomic merge contains at most $q\operatorname{rank}(A)$
@@ -879,8 +882,12 @@ is sound and robust under non-uniqueness (Remark~\ref{rem:stopping}),
 and the per-round pricing sweep of Section~\ref{sec:inexact} turns
 Proposition~\ref{prop:inexact} into a per-run optimality certificate
 whenever a bound $M\ge\lVert x^*\rVert_1$ is available. How the
-shipped UltraScan implementation relates to these conditions and to
-the stopping certificate is examined in Online Resource~2.
+shipped UltraScan implementation relates to (H1)--(H3) and to the
+stopping certificate is examined in Online Resource~2; its two
+headline limits are that the grid is screened by column norm before
+solving --- the certificate then applies to the screened grid rather
+than the nominal one --- and that only its unchanged-result stopping
+exits carry the certificate.
 
 \paragraph{Limitations.}
 The guarantee is stated for exact subproblem solves; floating-point

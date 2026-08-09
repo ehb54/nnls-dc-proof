@@ -9,8 +9,6 @@
 
 \raggedbottom
 
-\newcommand{\R}{\mathbb{R}}
-
 \hypersetup{
   pdftitle={Online Resource 2: Notes on the UltraScan implementation},
   pdfauthor={Emre H. Brookes},
@@ -38,12 +36,18 @@ divide-and-conquer method for large-scale nonnegative least squares}
 note records, for completeness, how the divide-and-conquer NNLS
 implementation shipped in the open-source UltraScan package relates to
 the article's conditions (H1)--(H3) and to its stopping certificate.
-Source locations refer to UltraScan release v4.1.0; numbered results
-are the article's.
+Source locations refer to the repository
+\texttt{https://github.com/ehb54/ultrascan3} at tag v4.1.0 (commit
+\texttt{c31386b4a}); numbered results are the article's. Sections
+2--3 describe the noise-free configuration
+(\texttt{noisflag}~$=0$): when time- or radially-invariant noise
+fitting is enabled, the block solver takes a different code path
+whose relationship to (H1) is under separate investigation, and the
+transfer statements below are not asserted for that configuration.
 
 \section*{1\quad Merge and feedback structure: (H2) and (H3)}
 
-The 2DSA master
+The MPI 2DSA master
 (\texttt{programs/us\_mpi\_analysis/2dsa\_master.cpp}, functions
 \texttt{process\_solutes} and \texttt{iterate}) accumulates each
 worker's complete solute vector into a depth-indexed bin, ships a bin
@@ -75,26 +79,33 @@ positively against the merged residual.
 
 \section*{3\quad Stopping logic: which exits are certified}
 
-The refinement loop has four exits. Two are certified: iteration ends
-when the variance change falls below $10^{-100}$
-(\texttt{min\_variance\_improvement}) --- effectively exact value
-equality --- or when the solute set repeats with all concentrations
-within 10\%, a test stricter than support repetition; either branch
-is sound by Theorem~1(b). Two are not certified: the iteration cap,
-whose interactive default is 3
-(\texttt{us\_analysis\_control\_2d.cpp}), typically binds before the
-certified tests --- which fired at rounds 4--13 in the
-correlated-kernel suites of the article's Section~7 --- and a
-rollback branch ends refinement with the previous iterate when an
-iteration's variance worsens, a situation unreachable under
+The refinement loop of the MPI master has four exits. Two are
+certified: iteration ends when the variance change falls below
+$10^{-100}$ (\texttt{min\_variance\_improvement}) --- effectively
+exact value equality --- or when the solute set repeats with all
+concentrations within 10\%, a test stricter than support repetition;
+either branch is sound by Theorem~1(b). Two are not certified: the
+iteration cap, read from the job request
+(\texttt{parameters["max\_iterations"]},
+\texttt{us\_mpi\_analysis.cpp}), and a rollback branch that, past
+half the cap, ends refinement with the previous iterate when an
+iteration's variance worsens --- a situation unreachable under
 (H1)--(H3) in exact arithmetic (the article's Lemma~6) but live in
-floating point. A run exiting on the cap or the rollback returns a
-feasible iterate with no optimality guarantee.
+floating point. The certified stopping tests fired at rounds 4--13 in
+the correlated-kernel suites of the article's Section~7, so caps
+below that range bind first. The interactive 2DSA controls
+(\texttt{programs/us\_2dsa/us\_analysis\_control\_2d.cpp}) drive a
+separate threaded implementation with its own relaxed stall tolerance
+($10^{-12}$ --- the relaxation the article's Section~7 notes is not
+covered by Theorem~1(b)) and an iteration default of 1, that is,
+refinement disabled: the non-iterated scheme of the article's
+Proposition~1 (the default becomes 3 when the refinement option is
+enabled).
 
 \medskip
 \noindent The practical rule these notes support: treat a
 divide-and-conquer run as certified by the article's theory exactly
-when it terminates on the unchanged-result test, and read the
+when it terminates on one of the two certified exits, and read the
 certificate as global optimality over the screened grid. None of the
 above bears on the article's theorems; it locates the shipped code
 relative to their hypotheses.
