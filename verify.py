@@ -39,7 +39,7 @@ Checks performed here:
   4. Genuine per-edge monotonicity: at EVERY merge node the parent value is
      asserted <= the minimum of its children's values (Lemma "tree descent"),
      and each round's value is asserted <= the previous round's value
-     (Lemma "monotone rounds"), all with relative slack 1e-9.
+     (Lemma "monotone rounds"), all with slack 1e-9 * (1 + |v|).
 """
 
 import numpy as np

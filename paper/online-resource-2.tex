@@ -32,10 +32,10 @@ implementation}
 \noindent
 Supplementary material for \emph{Exactness of an iterated
 divide-and-conquer method for large-scale nonnegative least squares}
-(Optimization Letters). The article's results are self-contained; this
-note records, for completeness, how the divide-and-conquer NNLS
-implementation shipped in the open-source UltraScan package relates to
-the article's conditions (H1)--(H3) and to its stopping certificate.
+(Optimization Letters). This note records how the divide-and-conquer
+NNLS implementation shipped in the open-source UltraScan package
+relates to the article's conditions (H1)--(H3) and to its stopping
+certificate.
 Source locations refer to the repository
 \texttt{https://github.com/ehb54/ultrascan3} at tag v4.1.0 (commit
 \texttt{c31386b4a}); numbered results are the article's. Sections
@@ -57,17 +57,21 @@ iteration's nonzero solutes into every subgrid job with duplicates
 removed. Returned solute sets are therefore never split across merge
 jobs, and every leaf carries the incumbent --- the canonical
 instantiation of conditions (H2) and (H3), in the atomic
-whole-set-packing form the article's Section~8 recommends.
+whole-set-packing form the article's Section~8 recommends, with bins
+closed by an adaptive size cap rather than a fixed fan-in. The
+interactive 2DSA program (\texttt{programs/us\_2dsa}), a separate
+threaded implementation, does the same.
 
 \section*{2\quad Grid screening: the scope of (H1)}
 
 The block solver screens the grid before solving: every column whose
-Euclidean norm falls below a fixed cutoff is dropped from the
-subproblem (\texttt{utils/us\_solve\_sim.cpp},
-\texttt{\_NORM\_CUTOFF\_}~$=1.00$). The screen depends only on the
+Euclidean norm falls below a cutoff $c$ is dropped from the
+subproblem (\texttt{utils/us\_solve\_sim.cpp};
+$c=\texttt{\_NORM\_CUTOFF\_}=1.00$ unless overridden for the run
+through debug text). The screen depends only on the
 column, not on the block or the round, so the deployed method is
 Algorithms~1--2 of the article applied to the screened set
-$S'=\{j:\lVert a_j\rVert_2\ge1\}$; every result, including
+$S'=\{j:\lVert a_j\rVert_2\ge c\}$; every result, including
 Theorem~1's certificate, transfers verbatim with $S'$ in place of
 $S$, and $R\subseteq S'$ holds automatically since a screened column
 never carries a positive amplitude. The scope consequence is that the
@@ -79,33 +83,46 @@ positively against the merged residual.
 
 \section*{3\quad Stopping logic: which exits are certified}
 
-The refinement loop of the MPI master has four exits. Two are
-certified: iteration ends when the variance change falls below
-$10^{-100}$ (\texttt{min\_variance\_improvement}) --- effectively
-exact value equality --- or when the solute set repeats with all
-concentrations within 10\%, a test stricter than support repetition;
-either branch is sound by Theorem~1(b). Two are not certified: the
-iteration cap, read from the job request
-(\texttt{parameters["max\_iterations"]},
-\texttt{us\_mpi\_analysis.cpp}), and a rollback branch that, past
-half the cap, ends refinement with the previous iterate when an
-iteration's variance worsens --- a situation unreachable under
-(H1)--(H3) in exact arithmetic (the article's Lemma~6) but live in
-floating point. The certified stopping tests fired at rounds 4--13 in
-the correlated-kernel suites of the article's Section~7, so caps
-below that range bind first. The interactive 2DSA controls
-(\texttt{programs/us\_2dsa/us\_analysis\_control\_2d.cpp}) drive a
-separate threaded implementation with its own relaxed stall tolerance
-($10^{-12}$ --- the relaxation the article's Section~7 notes is not
-covered by Theorem~1(b)) and an iteration default of 1. A default of
-1 means refinement is off: the default interactive run is the
-non-iterated scheme of the article's Proposition~1 (the count becomes
-3 when the refinement option is enabled).
+The refinement loop of the MPI master has four exits, checked after
+each pass in this order. \emph{Cap:} the pass count is compared with
+the iteration cap before anything else, so a stopping test at round
+$k$ can fire only if the cap exceeds $k$; the cap comes from the job
+request (\texttt{parameters["max\_iterations"]}), is raised from 1 to 5 in
+single-master Monte Carlo runs; parallel-masters Monte Carlo runs do
+not refine at all.
+\emph{Rollback:} past half the cap, a pass whose variance worsens ends
+refinement. \emph{Value:} the variance change falls below $10^{-100}$
+(\texttt{min\_variance\_improvement}). \emph{Solute set:} the solute
+set repeats with all concentrations within 10\%, a test stricter than
+support repetition. The solute-set exit is certified by
+Theorem~1(b); the cap and the rollback never are. The value exit ---
+exact value equality in effect --- is certified too, provided no data
+point reaches the optical-density limit: such points are zeroed, with
+their rows of the design matrix, in the problem solved but still
+counted in the reported variance, which then no longer tracks the
+objective. Under the same proviso the article's Lemma~6 rules the
+rollback out in exact arithmetic. The certified tests fired at rounds
+4--13 in the article's correlated-kernel suites, so a cap of 4 or less
+would bind first in every such trial.
 
-\medskip
-\noindent The practical rule these notes support: treat a
-divide-and-conquer run as certified by the article's theory exactly
-when it terminates on one of the two certified exits, and read the
+The interactive program stops when its solute set repeats --- the
+article's support test, certified by Theorem~1(b) --- or when the
+per-point variance changes by at most an absolute $10^{-12}$, a
+relaxation that differs from the relative test of the article's
+Section~7 and is likewise not covered by Theorem~1(b). Its iteration
+count (\texttt{us\_analysis\_control\_2d.cpp}) defaults to 1, which
+means refinement is off: the default interactive run is the
+non-iterated scheme of the article's Proposition~1. Enabling
+refinement sets the count to 3, permitting one comparison, of round 2
+with round 1.
+
+\smallskip
+\noindent The practical rule these notes support: treat a run as
+certified by the article's theory exactly when it ends on a certified
+exit --- on the MPI master, the solute-set exit, or the value exit when
+no data point reaches the optical-density limit (the job log names the
+exit that fired); in the interactive program, the solute-set test,
+which it does not report separately --- and read the
 certificate as global optimality over the screened grid. None of the
 above bears on the article's theorems; it locates the shipped code
 relative to their hypotheses.

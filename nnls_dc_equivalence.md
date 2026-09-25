@@ -1,5 +1,13 @@
 # Exactness of Divide-and-Conquer NNLS with Iterative Refinement
 
+> **Status.** This is the working note that preceded the manuscript in
+> `paper/`, kept for its extended remarks. Its numbering differs from
+> the manuscript's, and where the two differ the manuscript is
+> authoritative. The manuscript adds, among other things, the exact
+> halting round (its Theorem 1(c)), a tolerance bound that also covers
+> inexact complementarity (its Proposition 2), and an observed failure
+> of the support test alone under non-uniqueness.
+
 **Subject.** E. H. Brookes, R. V. Boppana, B. Demeler, *Computing Large Sparse
 Multivariate Optimization Problems with an Application in Biophysics*, SC'06
 (doi 10.1145/1188455.1188541), presents a divide-and-conquer (D&C) method for
@@ -27,9 +35,9 @@ correspondence" empirically. No proof was given. This note supplies one.
    which it returns SSR $=1/12$ while the full solution has SSR $=0$. The
    refinement loop is therefore not cosmetic; it is what makes the method
    exact.
-4. *(§7)* A finite-tolerance version: if iteration stops when every pricing
-   violation is $\le\delta$, the objective suboptimality is at most
-   $\delta\lVert x^*\rVert_1$.
+4. *(§7)* A finite-tolerance version: if iteration stops at an exactly
+   solved iterate whose pricing violations are all $\le\delta$, the
+   objective suboptimality is at most $\delta\lVert x^*\rVert_1$.
 
 The proof is a Lyapunov-descent argument — the direction of the
 "contraction" idea — closed by two structural facts: a *distributed pricing*
@@ -43,8 +51,9 @@ why this route succeeds where a metric contraction argument cannot.
 ## 1. Setup and notation
 
 Data $b\in\mathbb{R}^m$; basis matrix $A\in\mathbb{R}^{m\times n}$ with
-columns $a_j$, $j\in S:=\{1,\dots,n\}$ (one column per parameter; $n=|S|$ up
-to $10^6$ in the paper). For a subset $C\subseteq S$, the restricted NNLS
+columns $a_j$, $j\in S:=\{1,\dots,n\}$ (one column per parameter; $n=|S|$
+from $10^3$ to $10^6$ in the paper's analysis, $1.5\times10^6$ in its
+largest run). For a subset $C\subseteq S$, the restricted NNLS
 problem is
 
 $$
@@ -250,10 +259,11 @@ robust statement; amplitude-level equivalence is guaranteed under the
 (generic) uniqueness condition, and can be *enforced* by strictly convex
 regularization (§8.5).
 
-**Remark (stopping rule).** Under non-uniqueness it is conceivable that
-iterates wander among distinct optimal supports with $v_k\equiv v^*$; the
-set-stability test might then be slow to trigger even though every iterate
-is already optimal. Stopping on "no decrease of the residual" (which the
+**Remark (stopping rule).** Under non-uniqueness, iterates can wander
+among distinct optimal supports with $v_k\equiv v^*$, and the
+set-stability test then need not fire at all even though every iterate
+is already optimal (the manuscript's duplicated-column probe exhibits a
+period-3 cycle). Stopping on "no decrease of the residual" (which the
 paper already uses for the noise-removal case) is robust: by Theorem 1.2 a
 stalled value certifies optimality.
 

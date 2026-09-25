@@ -66,14 +66,14 @@ The iterative variant has been in production use in the UltraScan
 software for two decades and has been observed to reproduce the
 full-grid solution; however, a proof has been lacking. We prove that,
 provided each subproblem is solved exactly and merge steps union whole
-supports, the iterated scheme terminates after finitely many rounds at a
-global minimizer of the full problem, for every partition sequence and
+supports, the iterated scheme reaches a global minimizer of the full
+problem after finitely many rounds, for every partition sequence and
 merge topology, and that the implemented stopping rule is a sound
 certificate of global optimality. The optimal value and fitted vector
 always coincide with those of the full computation; the solution itself
 coincides under a standard uniqueness condition. A four-column
 counterexample shows that the non-iterated scheme can be suboptimal by a
-constant factor of the signal, so the feedback rounds are necessary.
+fixed fraction of the signal, so the feedback rounds are necessary.
 Suboptimality under inexact solves and pricing is bounded, and the
 analysis is
 confirmed numerically on correlated designs representative of the
@@ -103,14 +103,14 @@ velocity analysis of analytical ultracentrifugation (AUC) data, each
 column of $A$ is a finite-element solution of the Lamm equation for one
 candidate solute, the grid ranges over sedimentation and frictional
 parameters, and nonnegativity reflects physical concentrations; the
-two-dimensional spectrum analysis (2DSA) implemented in
-UltraScan~\cite{demeler2005,brookes2010} solves such problems routinely.
+two-dimensional spectrum analysis (2DSA)~\cite{brookes2010}
+implemented in UltraScan~\cite{demeler2005} solves such problems
+routinely.
 
 In practice the resolution of the analysis is limited by scale in two
-coupled ways: grids of $10^{5}$--$10^{6}$ basis functions --- within
-the $|S|=10^{3}$--$10^{6}$ range of~\cite{brookes2006}, whose largest
-demonstration is $1.5\times10^{6}$ parameters on 512 processors ---
-exceed the memory of a single workstation, and the cost of a direct
+coupled ways: grids of $10^{5}$--$10^{6}$ basis functions --- the
+largest demonstration in~\cite{brookes2006} used $1.5\times10^{6}$
+parameters on 512 processors --- exceed the memory of a single workstation, and the cost of a direct
 NNLS solve grows superlinearly with the number of columns. Direct solvers have
 advanced considerably --- TNT-NN handles dense systems of size
 $45000\times45000$~\cite{myre2017}, and Lawson--Hanson variants with
@@ -135,37 +135,40 @@ differ''~\cite{brookes2006}, and introduced an iterative variant: the
 support of the final solution is unioned back into every block and the
 procedure is repeated until the result no longer varies. Empirically the
 iterative variant was found to be in exact correspondence with the
-full-grid solution, typically within 3--7 rounds~\cite{brookes2006}, and
+full-grid solution, typically within 3--7 iterations~\cite{brookes2006}, and
 two decades of production use on cluster hardware are consistent with
 that observation. A proof, however, has been lacking: the equivalence
 underlying routine scientific results has rested on empirical evidence.
 
 This note closes that gap. The contributions are:
 \begin{enumerate}
-\item[(i)] a proof that the iterated scheme terminates after finitely
-many rounds at a global minimizer of the full problem, for arbitrary
+\item[(i)] a proof that the iterated scheme reaches a global minimizer
+of the full problem after finitely many rounds and, stopped on an
+unchanged value, halts one round later, for arbitrary
 per-round partitions of the fixed column set (including the interlaced
 moving-subgrid partitions of~\cite{brookes2006}) and arbitrary merge
-topologies, under two natural conditions:
-subproblems are solved exactly, and merge steps union \emph{whole}
-supports (Theorem~\ref{thm:main});
+topologies, under two natural conditions besides the coverage and
+feedback that define the scheme: subproblems are solved exactly, and
+merge steps union \emph{whole} supports (Theorem~\ref{thm:main});
 \item[(ii)] soundness of the implemented stopping rule: a round that
 leaves the result unchanged certifies global optimality
 (Theorem~\ref{thm:main}); the optimal value, fitted vector, and residual
-then coincide with the full computation unconditionally, and the
-amplitude vector itself coincides under a standard uniqueness condition
+then coincide with the full computation, and the amplitude vector
+itself does too under a standard uniqueness condition
 (Theorem~\ref{thm:outputs});
 \item[(iii)] a four-column counterexample showing that the non-iterated
-scheme can return a residual larger than the optimum by a constant
-factor of the signal, so the feedback rounds are necessary rather than
-cosmetic (Proposition~\ref{prop:counter});
+scheme can leave a squared residual of $\lVert b\rVert^2/51$ where the
+optimum is zero --- a fixed fraction of the signal --- so the feedback
+rounds are necessary rather than cosmetic
+(Proposition~\ref{prop:counter});
 \item[(iv)] a suboptimality bound of
 $\delta\lVert x^*\rVert_1+\varepsilon$ under inexact pricing
 (tolerance $\delta$) and inexact complementarity (tolerance
 $\varepsilon$) (Proposition~\ref{prop:inexact}); and
 \item[(v)] numerical confirmation on correlated designs representative
-of the motivating application, including per-node verification of every
-monotonicity inequality used in the proof (Section~\ref{sec:numerics}).
+of the motivating application, with the merge-node and per-round
+inequalities of the proof asserted in every trial
+(Section~\ref{sec:numerics}).
 \end{enumerate}
 
 The analysis places the method in a classical lineage, and we are
@@ -174,14 +177,14 @@ is a distributed \emph{pricing} step in the sense of column
 generation~\cite{dantzig1960,gilmore1961,lubbecke2005}: the merged
 problem is a restricted master, and the blocks jointly price every
 column of the full grid against the current residual --- a parallel
-form of the partial (multiple) pricing surveyed
+form of the partial and multiple pricing surveyed
 in~\cite{lubbecke2005}. The finiteness mechanism itself is the
 classical simplicial-decomposition argument that exact master solves
 over a finite generator set terminate
 finitely~\cite{vonhohenbalken1977,hearn1985,garcia2003}, and the
-strict-improvement step is the same device that underlies convergence
-proofs for working-set decomposition in support vector machine
-training~\cite{osuna1997,lin2001}. Greedy variants over the conic
+strict-improvement step is the device introduced for working-set
+decomposition in support vector machine training~\cite{osuna1997}, on
+which later convergence proofs build~\cite{lin2001}. Greedy variants over the conic
 hull of an atom set --- fully corrective non-negative matching
 pursuit --- carry convergence rates in the same unbounded-cone
 setting, with no finiteness assumption on the
@@ -314,7 +317,7 @@ Theorem~\ref{thm:main}(b) certifies either.
 \begin{algorithmic}[1]
 \Require incumbent set $R\subseteq S$; leaf candidate sets
 $B_1,\dots,B_p$ with $\bigcup_i B_i=S$ and $R\subseteq B_i$
-(condition (H2)); merge tree $\mathcal T$ with $p$ leaves
+(condition (H2)); merge tree $\mathcal T$ with $p\ge2$ leaves
 \For{$i=1,\dots,p$ (in parallel)}
   \State $y_i\gets$ minimizer of $\prob{B_i}$;\quad
          $U_i\gets\supp(y_i)$
@@ -368,8 +371,8 @@ unions of whole returned sets, which we call \emph{atomic} --- and
 satisfies (H2)--(H3) by construction; the two-level scheme of
 \cite[Text~1]{brookes2006} is of this form, as is any multistage merge
 that packs whole returned sets into groups. A multistage combining
-phase that re-chunks unioned results into fixed-size pieces is also an
-instance of Algorithm~\ref{alg:round}, but one that can violate (H3);
+phase that re-chunks unioned results into fixed-size pieces falls
+outside Algorithm~\ref{alg:round}, because it can violate (H3);
 Section~\ref{sec:discussion} discusses it. In contrast to
 working-set methods that must cap the working set
 \emph{a priori}~\cite{osuna1997}, no size control is needed here:
@@ -381,8 +384,9 @@ solver does so, every returned set satisfies
 $|U|\le\operatorname{rank}(A)$ regardless of the size of its candidate
 set, which bounds the merge problems automatically; this is an
 implementation property, not a consequence of optimality: under
-non-uniqueness an arbitrary minimizer need not be basic (two identical
-columns admit $(\tfrac12,\tfrac12)$, support two, rank one). Neither the partition nor the tree is
+non-uniqueness an arbitrary minimizer need not be basic (two columns
+both equal to $b$ admit the minimizer $(\tfrac12,\tfrac12)$, support
+two, rank one). Neither the partition nor the tree is
 required to be the same from round to round; in particular the
 moving-grid strategy of~\cite{brookes2006} --- interlaced subgrids of
 one fixed master grid --- is covered, while enlarging or regenerating
@@ -488,8 +492,9 @@ $v_{K+1}=v_K=v^*$, so the value test fires.
 
 \Needspace{10\baselineskip}
 \begin{theorem}[equivalence of outputs]\label{thm:outputs}
-Let $x_\infty$ be the terminal iterate of Algorithm~\ref{alg:iter} and
-let $x^*$ be any minimizer of $\prob{S}$. Then, unconditionally,
+Assume \emph{(H1)--(H3)}, let $x_\infty$ be the terminal iterate of
+Algorithm~\ref{alg:iter}, and let $x^*$ be any minimizer of
+$\prob{S}$. Then, without any uniqueness assumption,
 \begin{equation*}
 F(x_\infty)=v^*,\qquad Ax_\infty=Ax^*,\qquad r(x_\infty)=r(x^*),
 \end{equation*}
@@ -498,7 +503,7 @@ optimal residual and $Z:=\{j\in S: a_j^{\T}r^*=0\}$, the solution set of
 $\prob{S}$ is $\{x\ge0:\supp(x)\subseteq Z,\ A_Zx_Z=Ax^*\}$; if the
 columns $\{a_j\}_{j\in Z}$ are linearly independent, the minimizer is
 unique and $x_\infty=x^*$, so the returned parameter set equals the
-full computation's $R=f(S)$.
+full computation's $f(S)$.
 \end{theorem}
 \begin{proof}
 By Theorem~\ref{thm:main}(c) the terminal iterate is $x_{K+1}$, a
@@ -515,8 +520,11 @@ $x_Z$.
 \begin{remark}[stopping under non-uniqueness]\label{rem:stopping}
 The objective value, fit, and residual --- the quantities that determine
 goodness of fit --- are covered by Theorem~\ref{thm:outputs} without any
-condition. When the minimizer is not unique (near-duplicate basis
-functions on fine grids make this possible), iterates can move
+uniqueness condition. When the minimizer is not unique (exactly
+duplicated columns, or exactly representable data with more columns
+than $\operatorname{rank}(A)$, make this possible, and near-duplicate
+basis functions on fine grids approach it numerically), iterates can
+move
 indefinitely among optimal supports with $v_k\equiv v^*$, and the
 set-stability test then never fires: Theorem~\ref{thm:main}(b) gives
 its soundness, not its completeness, and in duplicated-column
@@ -525,7 +533,7 @@ fire within hundreds of rounds --- one run, followed further, settles
 into a cycle among distinct optimal supports
 (Section~\ref{sec:numerics}). It is
 the value test that guarantees termination
-(Theorem~\ref{thm:main}(c)), so the disjunctive stopping rule of
+(Theorem~\ref{thm:main}(c)), so the value part of the stopping rule of
 Algorithm~\ref{alg:iter} is a design requirement rather than a
 convenience. Strictly convex regularization removes the issue
 altogether (Section~\ref{sec:discussion}).
@@ -538,7 +546,7 @@ There is a problem with $m=3$, $n=4$ and a two-block partition on which
 the non-iterated scheme (Algorithm~\ref{alg:round} with
 $R=\varnothing$) returns $F=\tfrac1{24}$, equivalently
 $\lVert r\rVert^2=\tfrac1{12}$, while $v^*=0$; one refinement round
-restores the exact solution.
+reaches $v^*$.
 \end{proposition}
 \begin{proof}
 Take
@@ -574,8 +582,8 @@ terminates with value $0=v^*$.
 
 \begin{remark}\label{rem:mechanism}
 The mechanism is a suppressor effect. Inside $S_1$, the column $a_1$
-alone fits the first and third components of $b$ so well that the local
-residual points away from $a_2$; discarding $a_2$ is \emph{correct for
+alone, compromising between the first and third components of $b$,
+overshoots the first, so the local residual points away from $a_2$; discarding $a_2$ is \emph{correct for
 the block} (the conditions \eqref{eq:kkt} hold with strict inequality),
 yet wrong globally, because once $a_3$ absorbs the second component
 the joint residual rotates and both discarded columns become
@@ -587,22 +595,22 @@ $\{(\sqrt2(t+\tfrac34),\,\tfrac14-t,\,\sqrt2(\tfrac34-t),\,
 $x_2+x_4=\tfrac12$. A retention threshold inside the blocks can repair
 particular instances, but the leniency required to keep a needed
 column is instance-dependent, and lenient retention forfeits the
-sparsification that motivates the method; no threshold that actually
-sparsifies is uniformly safe, whereas the refinement round repairs
-every instance because it re-prices every column against the merged
-residual. In the
+sparsification that motivates the method; the refinement round instead
+repairs every instance, because it re-prices every column against the
+merged residual. In the
 motivating application the basis functions vary smoothly over the
 grid, so each block typically contains near-substitutes for the
 columns the full solution needs; this is consistent with the fast
 convergence reported in~\cite{brookes2006}, while
 Section~\ref{sec:numerics} shows the single-pass gap is nevertheless
-nonzero in every trial of the correlated-design suites.
+nonzero in every trial of both kernel suites.
 \end{remark}
 
 \section{Inexact solves and pricing}\label{sec:inexact}
 
 Exact subproblem solves and exact zero tests are idealizations of
-floating-point practice; the guarantee degrades gracefully with both
+floating-point practice; what survives their relaxation is an
+a~posteriori certificate, which degrades gracefully with both
 tolerances.
 
 \begin{proposition}\label{prop:inexact}
@@ -643,11 +651,16 @@ of $A^{\T}r(x_k)$ is required --- no additional matrix storage, and
 typically far cheaper than the NNLS solves. Second, an upper bound
 $M\ge\lVert x^*\rVert_1$, since $\lVert x^*\rVert_1$ is not otherwise
 known: given both, the computable certificate is
-$F(x)-v^*\le\delta M+\varepsilon$. In the motivating application the
-amplitudes are partial concentrations whose sum reproduces the loading
-concentration, so a physical $M$ is typically available; absent such a
-bound, Proposition~\ref{prop:inexact} should be read as a conditional
-a~posteriori bound.
+$F(x)-v^*\le\delta M+\varepsilon$. When the columns are entrywise
+nonnegative, as simulated concentration profiles are, the data supply
+one: for $x\ge0$,
+$\lVert Ax\rVert_1\ge\lVert x\rVert_1\min_j\lVert a_j\rVert_1$, while
+$\lVert Ax^*\rVert_1\le\sqrt m\,\lVert Ax^*\rVert_2\le\sqrt
+m\,\lVert b\rVert_2$ because $Ax^*$ is the projection of $b$ onto a
+closed convex cone containing $0$; so, if no column vanishes,
+$M=\sqrt m\,\lVert b\rVert_2/\min_j\lVert a_j\rVert_1$ serves. Absent
+such structure, Proposition~\ref{prop:inexact} should be read as a
+conditional a~posteriori bound.
 
 \section{Numerical illustration}\label{sec:numerics}
 
@@ -676,8 +689,8 @@ non-unique and the unconditional part of Theorem~\ref{thm:outputs} is
 exercised --- suites (iii) and (iv) partitioned into 4, 8, or 16
 contiguous blocks as in (i). In every trial, the parent--child inequality of
 Lemma~\ref{lem:tree} was asserted at every merge node and the
-inequality of Lemma~\ref{lem:mono} at every round (relative slack
-$10^{-9}$), the terminal value was compared against a full-grid solve,
+inequality of Lemma~\ref{lem:mono} at every round (slack
+$10^{-9}(1+v)$), the terminal value was compared against a full-grid solve,
 and both KKT residuals of Proposition~\ref{prop:inexact} --- the
 pricing residual $\delta=\max(0,\max_j a_j^{\T}r)$ and the
 complementarity residual $\varepsilon=\max(0,-(A^{\T}r)^{\T}x)$, whose
@@ -753,7 +766,7 @@ Theorem~\ref{thm:main}; a plot cannot by itself distinguish finite
 termination from sufficiently fast asymptotic convergence --- that
 distinction is supplied by the theorem. Third, the non-iterated scheme
 was suboptimal in every trial of both kernel suites: its value exceeded
-the optimum by a median of 18\% (maximum 169\%) under random contiguous
+the optimum by a median of 18\% (maximum 168\%) under random contiguous
 blocks, and by a median relative excess of $8.4$ (maximum $59$) ---
 a typical single-pass value $9.4$ times the optimum --- under the
 interlaced partition, where every subgrid is a coarse copy of the whole
@@ -761,7 +774,7 @@ grid and locally optimal fits are correspondingly misleading; the
 feedback rounds therefore carry the exactness in precisely the regimes
 the method was designed for. Fourth, the suite built to mirror the
 moving-grid partitioning of~\cite{brookes2006} --- (ii) --- required
-7--13 rounds, above the 3--7 refinement iterations reported
+7--13 rounds, above the 3--7 iterations reported
 in~\cite{brookes2006}; the comparison is not direct (surrogate kernels
 rather than Lamm solutions, and a strict certificate rather than a
 goodness-of-fit stopping rule), and the remaining suites straddle
@@ -791,7 +804,10 @@ with $\delta$ and $\varepsilon$ in absolute units (the absolute
 $\delta$ reach $5.5\times10^{-14}$; Table~\ref{tab:trials}'s $\delta$
 column is normalized) --- a genuine but coarser certificate than the
 observed value gaps, as an a~posteriori bound must be --- while the
-107 support-rule terminations carry the exact certificate. Finally,
+107 support-rule terminations pass the test of
+Theorem~\ref{thm:main}(b) itself, which is exact under exact solves;
+in floating point, the $\delta$ and $\varepsilon$ of
+Table~\ref{tab:trials} quantify them as well. Finally,
 with the value rule disabled the support test alone need not
 terminate (Remark~\ref{rem:stopping}): 3 of 40 duplicated-column runs
 failed to stabilize within 400 rounds, and one, followed to 2000,
@@ -853,8 +869,8 @@ small relative to the distance from the optimum. What survives, and
 suffices, is that $F-v^*$ is a Lyapunov function for the round map ---
 nonincreasing by Lemma~\ref{lem:mono}, strictly decreasing off the
 solution set by Lemma~\ref{lem:strict}. Lyapunov descent alone would
-give only asymptotic statements; the closing ingredient, particular to
-this algorithm, is that every iterate is an exact minimizer over one of
+give only asymptotic statements; the closing ingredient, shared with
+simplicial decomposition, is that every iterate is an exact minimizer over one of
 finitely many column subsets, so the values live in a finite set and
 strict descent must terminate. In this respect the method behaves like
 the finitely terminating active-set algorithms it is built
@@ -868,8 +884,8 @@ fixed-size chunks --- a natural memory-management choice, and one
 compatible with the description in \cite[Section~4.1]{brookes2006} ---
 can
 split a returned support across chunks, in which case
-Lemma~\ref{lem:tree} no longer applies and a round can in principle
-lose ground, taking the certificate's soundness proof with it; the
+Lemma~\ref{lem:tree} no longer applies: a round can lose ground, and
+the stopping test can fire at a suboptimal point; the
 shipped UltraScan master packs whole sets and is not of this form
 (Online Resource~2). Since
 basic-solution solvers return supports with at most
@@ -887,7 +903,7 @@ stopping certificate is examined in Online Resource~2; its main scope
 limits are that the analysis covers the noise-free configuration
 only, that the grid is screened by column norm before solving --- the
 certificate then applies to the screened grid rather than the nominal
-one --- and that only its unchanged-result stopping exits carry the
+one --- and that only its unchanged-result stopping exits can carry the
 certificate.
 
 \paragraph{Limitations.}
@@ -935,9 +951,8 @@ basic-solution support bound $|U|\le\operatorname{rank}(A)$ becomes
 vacuous, and supports --- hence merge sizes --- grow with the
 regularization weight; amplitude-level uniqueness is bought at the
 price of the sparsity that keeps the merges small. Overall, the
-results place the
-production use of the iterated divide-and-conquer method on firm
-footing and should support its transfer to other spectrum-type NNLS
+results place the iterated divide-and-conquer method on firm
+theoretical footing and should support its transfer to other spectrum-type NNLS
 applications whose scale --- in memory or in solve time --- exceeds a
 single node.
 

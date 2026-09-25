@@ -153,8 +153,8 @@ pass without it can lock in a strictly suboptimal answer.
 
 At termination the divide-and-conquer result has exactly the same
 minimum misfit, the same fitted signal $Ax$, and the same residual
-$b-Ax$ as a direct full-matrix NNLS computation --- unconditionally
-(Theorem~2). The amplitude vector itself need not be unique when
+$b-Ax$ as a direct full-matrix NNLS computation, whether or not the
+solution is unique (Theorem~2). The amplitude vector itself need not be unique when
 columns represent identical or redundant signals; if the relevant
 columns are linearly independent, the amplitudes are unique as well.
 
@@ -167,14 +167,15 @@ coverage and feedback):
 \begin{enumerate}
 \item \textbf{Exact block solves.} Every restricted NNLS problem is
   solved exactly. Without it, Steps~1--2 lose their inequalities; the
-  article's Proposition~2 quantifies the graceful degradation under
-  floating-point tolerances.
+  article's Proposition~2 then bounds, after the fact, how far a
+  returned answer can be from optimal.
 \item \textbf{Full coverage.} Every round's blocks cover every column
   of the fixed full matrix. Without it, the improving column of
   Step~2 might never reappear.
 \item \textbf{Feedback of the incumbent.} The previous solution's
-  complete support is included in every block. Without it, blocks
-  cannot reproduce the current solution and Step~1 fails.
+  complete support is included in every block. Without it, the block
+  holding an improving column may be unable to reproduce the current
+  solution, and Step~2 fails.
 \item \textbf{Whole-support merging.} Merge stages pass complete
   returned supports upward, never splitting or truncating them
   (condition (H3) of the article). Without it, a gain found in a
@@ -184,7 +185,8 @@ coverage and feedback):
 
 \noindent In one sentence: \emph{every omitted column gets another
 chance to explain the current residual, so a non-optimal fit must keep
-improving; and since only finitely many restricted optima exist, the
+improving; and since only finitely many restricted optimal values
+exist, the
 improvement must end --- at the global optimum.}
 
 \end{document}

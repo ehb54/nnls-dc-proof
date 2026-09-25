@@ -112,7 +112,7 @@ def run_scaling(sizes, n_trials, rng):
               f"max v*: {max(r['v_full'] for r in recs):.4g}")
         rounds = [r["rounds"] for r in recs]
         rows.append(
-            f"$n={n}$ & {n_trials} & {min(rounds)}/{int(np.median(rounds))}/"
+            f"$n={n}$ & {n_trials} & {min(rounds)}/{np.median(rounds):g}/"
             f"{max(rounds)} & {fmt_sci(max(r['val_err'] for r in recs))} & "
             f"{fmt_sci(max(r['delta'] for r in recs))} & "
             f"{fmt_sci(max(r['eps'] for r in recs))} \\\\")
@@ -183,7 +183,7 @@ def latex_row(name, recs):
     worst_delta = max(r["delta"] for r in recs)
     worst_eps = max(r["eps"] for r in recs)
     n_sub = sum(r["sp_subopt"] for r in recs)
-    return (f"{name} & {len(recs)} & {min(rounds)}/{int(np.median(rounds))}/"
+    return (f"{name} & {len(recs)} & {min(rounds)}/{np.median(rounds):g}/"
             f"{max(rounds)} & {fmt_sci(worst_err)} & {fmt_sci(worst_delta)} & "
             f"{fmt_sci(worst_eps)} & {n_sub}/{len(recs)} \\\\")
 
@@ -327,11 +327,11 @@ def main():
 
     sp = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in smooth])
     print(f"smooth suite: single-pass relative excess median "
-          f"{np.median(sp):.3f}, max {np.max(sp):.3f}; "
+          f"{np.median(sp):.4f}, max {np.max(sp):.4f}; "
           f"suboptimal in {sum(r['sp_subopt'] for r in smooth)}/60")
     spl = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in lattice])
     print(f"lattice suite: single-pass relative excess median "
-          f"{np.median(spl):.3f}, max {np.max(spl):.3f}; "
+          f"{np.median(spl):.4f}, max {np.max(spl):.4f}; "
           f"suboptimal in {sum(r['sp_subopt'] for r in lattice)}/40")
 
     print("\n--- LaTeX table rows (Table 2, scaling) ---")

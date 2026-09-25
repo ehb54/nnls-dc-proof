@@ -1,5 +1,7 @@
 PDFLATEX = /Library/TeX/texbin/pdflatex
 BIBTEX   = /Library/TeX/texbin/bibtex
+# run from the repository root; see README for the venv
+PYTHON  ?= venv/bin/python
 
 all: main.pdf online-resource-1.pdf online-resource-2.pdf
 
@@ -18,9 +20,9 @@ online-resource-2.pdf: online-resource-2.tex
 	$(PDFLATEX) -interaction=nonstopmode online-resource-2
 
 figs/convergence.pdf:
-	cd .. && python experiments.py
+	cd .. && $(PYTHON) experiments.py
 
 clean:
-	rm -f main.aux main.bbl main.blg main.log main.out main.pdf
+	rm -f *.aux *.bbl *.blg *.log *.out main.pdf
 
 .PHONY: all clean
