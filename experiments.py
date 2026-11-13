@@ -58,6 +58,12 @@ def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
                                      iterative=True, fan_in=fi)
         reasons[reason] = reasons.get(reason, 0) + 1
         delta, eps = kkt_residuals(A, b, x)
+        # Data-only bound of the manuscript's Section 6,
+        # M = sqrt(m) ||b||_2 / min_j 1^T a_j, valid when every column sum
+        # is positive (for nonnegative columns, 1^T a_j = ||a_j||_1).
+        colsum_min = float(np.min(A.sum(axis=0)))
+        m_data = (float(np.sqrt(A.shape[0]) * np.linalg.norm(b) / colsum_min)
+                  if colsum_min > 0.0 else None)
         full_support = set(np.flatnonzero(x_full > 0.0).tolist())
         recs.append({
             "v_full": v_full,
@@ -71,6 +77,8 @@ def run_suite(name, maker, n_trials, rng, nblocks_choices=(4, 8, 16),
             "delta_abs": delta,
             "eps_abs": eps,
             "x1": float(np.sum(x_full)),
+            "m_data": m_data,
+            "nonneg": bool(np.all(A >= 0.0)),
             "sp_subopt": vals_sp[-1] - v_full > 1e-9 * (1.0 + v_full),
             "supp_match": set(map(int, np.flatnonzero(x > 0.0))) == full_support,
         })
@@ -324,6 +332,22 @@ def main():
           f"{n_stall} stall-rule runs: max {worst:.3g}; "
           f"M = ||x*||_1 in [{m_lo:.8g}, {m_hi:.8g}]; "
           f"max absolute delta {d_hi:.3g}")
+
+    # The same certificate with the data-only M (Section 6) for the
+    # support-rule runs of the two kernel suites, whose columns are
+    # nonnegative: no reference solve needed.
+    kern = [r for recs in (smooth, lattice) for r in recs
+            if r["reason"] == "support_fixed"]
+    assert all(r["nonneg"] and r["m_data"] is not None for r in kern)
+    worst_d = max(2.0 * (r["delta_abs"] * r["m_data"] + r["eps_abs"])
+                  for r in kern)
+    ratio = [r["m_data"] / r["x1"] for r in kern]
+    print(f"data-only certificate over the {len(kern)} support-rule runs "
+          f"of the two kernel suites (all columns nonnegative): "
+          f"max 2(delta*M + eps) {worst_d:.3g}; "
+          f"M in [{min(r['m_data'] for r in kern):.4g}, "
+          f"{max(r['m_data'] for r in kern):.4g}]; "
+          f"M/||x*||_1 in [{min(ratio):.4f}, {max(ratio):.4f}]")
 
     sp = np.array([(r["v_sp"] - r["v_full"]) / r["v_full"] for r in smooth])
     print(f"smooth suite: single-pass relative excess median "

@@ -520,11 +520,12 @@ $x_Z$.
 \begin{remark}[stopping under non-uniqueness]\label{rem:stopping}
 The objective value, fit, and residual --- the quantities that determine
 goodness of fit --- are covered by Theorem~\ref{thm:outputs} without any
-uniqueness condition. When the minimizer is not unique (exactly
-duplicated columns, or exactly representable data with more columns
-than $\operatorname{rank}(A)$, make this possible, and near-duplicate
-basis functions on fine grids approach it numerically), iterates can
-move
+uniqueness condition. When the minimizer is not unique (which requires
+the columns $\{a_j\}_{j\in Z}$ of Theorem~\ref{thm:outputs} to be
+linearly dependent, as with exactly duplicated columns or exactly
+representable data and more columns than $\operatorname{rank}(A)$;
+near-duplicate basis functions on fine grids approach it numerically),
+iterates can move
 indefinitely among optimal supports with $v_k\equiv v^*$, and the
 set-stability test then never fires: Theorem~\ref{thm:main}(b) gives
 its soundness, not its completeness, and in duplicated-column
@@ -651,14 +652,15 @@ of $A^{\T}r(x_k)$ is required --- no additional matrix storage, and
 typically far cheaper than the NNLS solves. Second, an upper bound
 $M\ge\lVert x^*\rVert_1$, since $\lVert x^*\rVert_1$ is not otherwise
 known: given both, the computable certificate is
-$F(x)-v^*\le\delta M+\varepsilon$. When the columns are entrywise
-nonnegative, as simulated concentration profiles are, the data supply
-one: for $x\ge0$,
-$\lVert Ax\rVert_1\ge\lVert x\rVert_1\min_j\lVert a_j\rVert_1$, while
-$\lVert Ax^*\rVert_1\le\sqrt m\,\lVert Ax^*\rVert_2\le\sqrt
+$F(x)-v^*\le\delta M+\varepsilon$. When every column has a positive
+sum, as nonzero nonnegative columns such as simulated concentration
+profiles do, the data supply one: with $\mathbf 1$ the all-ones
+vector, $\mathbf 1^{\T}Ax\ge\lVert x\rVert_1\min_j\mathbf 1^{\T}a_j$
+for $x\ge0$, while
+$\mathbf 1^{\T}Ax^*\le\sqrt m\,\lVert Ax^*\rVert_2\le\sqrt
 m\,\lVert b\rVert_2$ because $Ax^*$ is the projection of $b$ onto a
-closed convex cone containing $0$; so, if no column vanishes,
-$M=\sqrt m\,\lVert b\rVert_2/\min_j\lVert a_j\rVert_1$ serves. Absent
+closed convex cone containing $0$; so
+$M=\sqrt m\,\lVert b\rVert_2/\min_j\mathbf 1^{\T}a_j$ serves. Absent
 such structure, Proposition~\ref{prop:inexact} should be read as a
 conditional a~posteriori bound.
 
@@ -806,8 +808,10 @@ column is normalized) --- a genuine but coarser certificate than the
 observed value gaps, as an a~posteriori bound must be --- while the
 107 support-rule terminations pass the test of
 Theorem~\ref{thm:main}(b) itself, which is exact under exact solves;
-in floating point, the $\delta$ and $\varepsilon$ of
-Table~\ref{tab:trials} quantify them as well. Finally,
+in floating point, the data-only $M$ of Section~\ref{sec:inexact}
+(1.76--3.96 times $\lVert x^*\rVert_1$) certifies the 100 in the two
+kernel suites (nonnegative columns) with
+$2(\delta M+\varepsilon)\le3.4\times10^{-12}$. Finally,
 with the value rule disabled the support test alone need not
 terminate (Remark~\ref{rem:stopping}): 3 of 40 duplicated-column runs
 failed to stabilize within 400 rounds, and one, followed to 2000,
@@ -885,8 +889,11 @@ compatible with the description in \cite[Section~4.1]{brookes2006} ---
 can
 split a returned support across chunks, in which case
 Lemma~\ref{lem:tree} no longer applies: a round can lose ground, and
-the stopping test can fire at a suboptimal point; the
-shipped UltraScan master packs whole sets and is not of this form
+the stopping test can fire at a suboptimal point: for
+$a_1=(1,1)^{\T}$, $a_2=(0,-1)^{\T}$, $b=(1,0)^{\T}$, blocks $\{1\}$,
+$\{2\}$ and single-column re-chunking, round~2's leaf $\{1,2\}$ fits
+$b$ exactly, yet the root again returns $\{1\}$: both tests fire at
+$F=1/4$, while $v^*=0$. The shipped UltraScan master packs whole sets and is not of this form
 (Online Resource~2). Since
 basic-solution solvers return supports with at most
 $\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), a
@@ -984,10 +991,9 @@ E.H.B. is the sole author of this work.
 The author declares no competing interests.
 
 \paragraph{Supplementary information.}
-Online Resource~1: an intuitive guide to the finite-termination and
-global-optimality proof, including a residual-based geometric
-interpretation and a summary of the required algorithmic assumptions
-(PDF). Online Resource~2: notes relating the shipped UltraScan
+Online Resource~1: an intuitive account of the proof, as two short
+arguments by contradiction, with a summary of the required algorithmic
+assumptions (PDF). Online Resource~2: notes relating the UltraScan
 implementation to conditions (H1)--(H3) and to the stopping
 certificate (PDF).
 

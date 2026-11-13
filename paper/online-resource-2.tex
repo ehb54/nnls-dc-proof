@@ -8,6 +8,8 @@
 \usepackage{amsmath,amssymb,amsfonts}
 
 \raggedbottom
+% vector math bullet (the class default introduces a Type 3 bitmap glyph)
+\renewcommand{\labelitemi}{$\bullet$}
 
 \hypersetup{
   pdftitle={Online Resource 2: Notes on the UltraScan implementation},
@@ -33,17 +35,18 @@ implementation}
 Supplementary material for \emph{Exactness of an iterated
 divide-and-conquer method for large-scale nonnegative least squares}
 (Optimization Letters). This note records how the divide-and-conquer
-NNLS implementation shipped in the open-source UltraScan package
-relates to the article's conditions (H1)--(H3) and to its stopping
-certificate.
-Source locations refer to the repository
-\texttt{https://github.com/ehb54/ultrascan3} at tag v4.1.0 (commit
-\texttt{c31386b4a}); numbered results are the article's. Sections
-2--3 describe the noise-free configuration
-(\texttt{noisflag}~$=0$): when time- or radially-invariant noise
-fitting is enabled, the block solver takes a different code path
-whose relationship to (H1) is under separate investigation, and the
-transfer statements below are not asserted for that configuration.
+NNLS implementation in the open-source UltraScan package relates to
+the article's conditions (H1)--(H3) and to its stopping certificate.
+Sections 1--3 describe the current release, v4.2.0 (commit
+\texttt{b9bb34698}) of \texttt{https://github.com/ehb54/ultrascan3},
+with source locations at that tag (the logic is as in v4.1.0);
+Section~4 notes where the development line differs. Numbered results
+are the article's. Sections 2--3 assume the noise-free configuration
+(\texttt{noisflag}~$=0$): with time- or radially-invariant noise
+fitting, the release's block solver passes the normal equations of the
+noise-reduced problem to its NNLS routine as if they were the design
+matrix, which does not in general solve the restricted least-squares
+problem, so (H1) fails.
 
 \section*{1\quad Merge and feedback structure: (H2) and (H3)}
 
@@ -58,9 +61,18 @@ removed. Returned solute sets are therefore never split across merge
 jobs, and every leaf carries the incumbent --- the canonical
 instantiation of conditions (H2) and (H3), in the atomic
 whole-set-packing form the article's Section~8 recommends, with bins
-closed by an adaptive size cap rather than a fixed fan-in. The
-interactive 2DSA program (\texttt{programs/us\_2dsa}), a separate
-threaded implementation, does the same.
+closed by an adaptive size cap rather than a fixed fan-in.
+
+The interactive 2DSA program (\texttt{programs/us\_2dsa}), a separate
+threaded implementation, packs and feeds back the same way, but its
+scheduler does not always complete the merge tree. When the last
+subgrid of a round returns after a merge has already been queued at
+depth~2, the target depth is reset to~1
+(\texttt{us\_2dsa\_process.cpp}:1184--1188); depending on thread
+timing, the final solve can then run on a depth-1 bin and discard the
+completed depth-2 result, or the round stalls. In such a round (H3)
+fails, and a stop is not certified. The path was found in the code
+and reproduced in a simulation of the scheduler, not yet in a run.
 
 \section*{2\quad Grid screening: the scope of (H1)}
 
@@ -86,45 +98,103 @@ positively against the merged residual.
 The refinement loop of the MPI master has four exits, checked after
 each pass in this order. \emph{Cap:} the pass count is compared with
 the iteration cap before anything else, so a stopping test at round
-$k$ can fire only if the cap exceeds $k$; the cap comes from the job
-request (\texttt{parameters["max\_iterations"]}), is raised from 1 to 5 in
-single-master Monte Carlo runs; parallel-masters Monte Carlo runs do
-not refine at all.
+$k$ can fire only if the cap exceeds $k$. The cap comes from the job
+request (\texttt{parameters["max\_iterations"]}). In a Monte Carlo
+run, a single master raises a cap of 1 to 5
+(\texttt{2dsa\_master.cpp}:20--23) for the run's first fit only (the
+fit to the measured data, of the first dataset in a composite job);
+later fits revert to the requested cap
+(line 182), so with a cap of 1 the replicates are single passes. With
+parallel masters, Monte Carlo runs do not refine at all, and composite
+jobs refine with the requested cap but reset the pass counter and the
+stored previous pass only when the dataset changes
+(\texttt{pmasters\_compjob.cpp}:642), so in a later meniscus or Monte
+Carlo fit of the same dataset the first test either meets the cap at
+once or compares the new fit's first pass with the previous fit's.
 \emph{Rollback:} past half the cap, a pass whose variance worsens ends
 refinement. \emph{Value:} the variance change falls below $10^{-100}$
 (\texttt{min\_variance\_improvement}). \emph{Solute set:} the solute
 set repeats with all concentrations within 10\%, a test stricter than
-support repetition. The solute-set exit is certified by
-Theorem~1(b); the cap and the rollback never are. The value exit ---
-exact value equality in effect --- is certified too, provided no data
-point reaches the optical-density limit: such points are zeroed, with
-their rows of the design matrix, in the problem solved but still
-counted in the reported variance, which then no longer tracks the
-objective. Under the same proviso the article's Lemma~6 rules the
-rollback out in exact arithmetic. The certified tests fired at rounds
-4--13 in the article's correlated-kernel suites, so a cap of 4 or less
-would bind first in every such trial.
+support repetition.
+
+The solute-set exit is certified by Theorem~1(b), except at the first
+test of such a later fit; the cap and the rollback never are. The
+value exit --- exact value equality in effect --- is certified too,
+with the same exception, provided no data point reaches the
+optical-density limit: such points are zeroed, with their rows of the
+design matrix, in the problem solved but still counted in the reported
+variance, which then no longer tracks the objective. Under the same
+proviso the article's Lemma~6 rules the rollback out in exact
+arithmetic. In floating point, once the optimum is reached, a
+roundoff-level rise in the variance can trigger it before the
+solute-set test is evaluated, so a rollback exit marks a run without a
+certificate, not a suboptimal one. After a rollback, the stored model
+pairs the solutes of the worsened pass with the variance of the pass
+before it (\texttt{us\_mpi\_analysis.cpp}:1577 and 2099). The
+certified tests fired at rounds 4--13 in the article's
+correlated-kernel suites, so a cap of 4 or less would bind first in
+every such trial.
 
 The interactive program stops when its solute set repeats --- the
 article's support test, certified by Theorem~1(b) --- or when the
 per-point variance changes by at most an absolute $10^{-12}$, a
 relaxation that differs from the relative test of the article's
-Section~7 and is likewise not covered by Theorem~1(b). Its iteration
-count (\texttt{us\_analysis\_control\_2d.cpp}) defaults to 1, which
-means refinement is off: the default interactive run is the
-non-iterated scheme of the article's Proposition~1. Enabling
-refinement sets the count to 3, permitting one comparison, of round 2
-with round 1.
+Section~7 and is likewise not covered by Theorem~1(b). Only in a
+single fit do these tests compare the current model's own rounds. A
+meniscus, bottom or Monte Carlo run restarts the round index for each new model but keeps
+the per-round records that the index addresses
+(\texttt{us\_2dsa\_process.cpp}:1638--1677), so the models after the
+first are tested against stale records, beginning with the first
+model's (lines 845--858), and their stops are not certified. The iteration count
+(\texttt{us\_analysis\_control\_2d.cpp}) defaults to 1, which means
+refinement is off: the default interactive run is the non-iterated
+scheme of the article's Proposition~1. Enabling refinement sets the
+count to 3, permitting one comparison, of round 2 with round 1.
 
 \smallskip
 \noindent The practical rule these notes support: treat a run as
 certified by the article's theory exactly when it ends on a certified
-exit --- on the MPI master, the solute-set exit, or the value exit when
-no data point reaches the optical-density limit (the job log names the
-exit that fired); in the interactive program, the solute-set test,
-which it does not report separately --- and read the
-certificate as global optimality over the screened grid. None of the
-above bears on the article's theorems; it locates the shipped code
-relative to their hypotheses.
+exit --- on the MPI master, the solute-set exit, or the value exit
+when no data point reaches the optical-density limit, in either case
+other than at the first test of a later fit in a composite
+parallel-masters job (the job log names the exit that fired); in the
+interactive program, the solute-set test in a single fit, which it
+does not report separately, subject to the scheduling path of
+Section~1 --- and read the certificate as global optimality over the
+screened grid.
+
+\section*{4\quad The development line}
+
+The development line (4.3.0-dev, commit \texttt{0eee7f31f} of
+10 November 2026) changes the points above as follows.
+\begin{itemize}
+\item One refinement loop serves single and parallel masters
+  (\texttt{2dsa\_master.cpp}); it resets the pass counter after every
+  fit, removing the composite-job exception of Section~3, and raises a
+  Monte Carlo cap of 1 to 5 for the fit to the measured data of every
+  dataset, parallel masters included. Replicates use the requested cap.
+\item Merge jobs in both programs drop duplicate solutes, and the MPI
+  master merges results in a fixed order, independent of worker
+  timing; the interactive scheduler no longer resets its target depth,
+  the step behind the path of Section~1.
+\item With noise fitting, each block solve projects the data and its
+  columns onto the orthogonal complement of the noise subspace and
+  solves the projected NNLS problem (\texttt{utils/us\_solve\_sim.cpp},
+  \texttt{nnls\_noise}): an exact solve of the restricted problem with
+  the noise optimized out. That configuration is not examined further
+  here.
+\item Unchanged: the norm screen, the four exits and their order, the
+  optical-density proviso, the stored model after a rollback, and the
+  interactive program's tests, defaults and records across models.
+\item A new headless mode of the interactive program, used in automated
+  processing of multi-wavelength data, sets the count to 2
+  (\texttt{us\_analysis\_control\_2d.cpp},
+  \texttt{apply\_auto\_fit\_params}): two rounds and no comparison, so
+  these runs end on the cap and carry no certificate.
+\end{itemize}
+
+\smallskip
+\noindent None of the above bears on the article's theorems; it
+locates the code relative to their hypotheses.
 
 \end{document}

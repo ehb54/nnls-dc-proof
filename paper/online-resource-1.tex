@@ -139,8 +139,8 @@ uses has $a_j^{\T}\hat r=0$, so $\hat r^{\T}A\hat x=0$, and therefore
 The amplitudes $x^*_j$ are nonnegative, so at least one component $j$
 that the better answer uses has $a_j^{\T}\hat r>0$.
 
-\emph{That component gets a fair trial.} In the next round, $j$ lies
-in some block, because the blocks cover the whole matrix, and that
+\emph{That component gets a fair trial.} In that round --- the one
+$\hat x$ went into --- $j$ lies in some block, because the blocks cover the whole matrix, and that
 block also contains every component of $\hat x$, because the current
 support is fed back into every block. Inside it, $\hat x$ plus a little
 of component $j$ is a legal answer, and by Section~2 it fits strictly
@@ -206,9 +206,9 @@ coverage and feedback):
   of the fixed full matrix. Without it, the improving component of
   Part~1 might never get its trial.
 \item \textbf{Feedback of the incumbent.} The previous solution's
-  complete support is included in every block. Without it, the block
-  holding an improving component may be unable to reproduce the
-  current solution, and Part~1 fails.
+  complete support is included in every block. Without it, a block
+  may be unable to reproduce the current solution, and both the
+  no-worse step of Section~3 and Part~1 fail.
 \item \textbf{Whole-support merging.} Merge stages pass complete
   returned supports upward, never splitting or truncating them
   (condition (H3) of the article). Without it, a gain found in a
