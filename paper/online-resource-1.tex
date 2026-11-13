@@ -42,10 +42,10 @@ the finite-termination and global-optimality proof}
 \noindent
 Supplementary material for \emph{Exactness of an iterated
 divide-and-conquer method for large-scale nonnegative least squares}
-(Optimization Letters). This guide is explanatory and restates the
-termination argument geometrically, in the language of the motivating
-application; the article's numbered results are authoritative and are
-cited by number.
+(Optimization Letters). This guide is explanatory: it restates the
+article's argument as two short proofs by contradiction, in the
+language of the motivating application. The article's numbered results
+are authoritative and are cited by number.
 
 \section*{1\quad The physical picture}
 
@@ -70,15 +70,22 @@ block; keep each block's nonzero components; merge the survivors and
 solve again; then feed the merged support back into \emph{every} block
 of the next round, and repeat until nothing changes.
 
-\section*{2\quad A one-line optimality test}
+\section*{2\quad Comparing two answers}
 
-Take any candidate column $a_j$ and increase its amplitude from the
-current fit by a small $t>0$. Expanding the square,
+Take the current fit $x$, with residual $r$, and any other candidate
+answer $y$. Expanding the square,
+\begin{equation*}
+F(y)\;=\;F(x)\;-\;r^{\T}A(y-x)\;+\;\tfrac12\lVert A(y-x)\rVert^2 .
+\end{equation*}
+The last term is never negative, so $y$ can fit better than $x$ only
+if $r^{\T}A(y-x)>0$: the change $y$ makes to the fitted signal must
+point partly toward the unexplained data. For a single component,
+$y=x+t\,e_j$ with a small $t>0$, this reads
 \begin{equation*}
 F(x+t\,e_j)\;=\;F(x)\;-\;t\,a_j^{\T}r\;+\;\tfrac{t^2}{2}\,
-\lVert a_j\rVert^2 .
+\lVert a_j\rVert^2 ,
 \end{equation*}
-The sign of $a_j^{\T}r$ therefore decides everything:
+and the sign of $a_j^{\T}r$ decides everything:
 \begin{itemize}
 \item if $a_j^{\T}r>0$, a small amount of component $j$ strictly
   reduces the misfit --- geometrically, $a_j$ points partly toward the
@@ -99,9 +106,13 @@ $x=2\cdot\mathbf 1$ has every $a_j^{\T}r<0$ yet is far from optimal),
 which is why Proposition~2 of the article tracks a complementarity
 residual as well.
 
-\section*{3\quad The proof in four steps}
+\section*{3\quad The proof by contradiction}
 
-\paragraph{Step 1: no round can make the fit worse.}
+Suppose the algorithm fails to find the best fit. It can fail in two
+ways --- by stopping at a wrong answer, or by never stopping --- and
+each leads to a contradiction. One fact serves both halves.
+
+\paragraph{No round can make the fit worse.}
 Every block of a new round contains the support of the previous merged
 solution, so the previous solution is a legal candidate in every block
 problem; an exactly solved block is at least as good as any legal
@@ -109,42 +120,64 @@ candidate. During merging, each child's \emph{complete} returned
 support is passed upward, so each child solution remains legal at its
 parent, and an exactly solved parent is at least as good as its
 children. Chaining these inequalities from the leaves to the root
-(Lemmas~5--6 of the article) gives $v_k\le v_{k-1}$: the misfit never
-increases.
+(Lemmas~5--6 of the article) shows that a round's merged result is at
+least as good as the best of its blocks, and hence that
+$v_k\le v_{k-1}$: the misfit never increases.
 
-\paragraph{Step 2: a wrong answer must improve strictly.}
-Suppose the current solution is not the full-grid optimum. By the
-pricing test, some column satisfies $a_{j_0}^{\T}r>0$ --- the residual
-points partly toward a component not in use. That column may have been
-discarded earlier, but the blocks cover the whole matrix, so it
-reappears in some block that also carries the entire current support.
-That block can therefore reproduce the current
-solution \emph{and} add a little of $a_{j_0}$, which by the expansion
-above strictly reduces the misfit; the exact block solver must do at
-least this well, and Step~1's merge inequalities carry the gain to the
-root (Lemma~7). In short: \emph{if the current answer is not globally
-optimal, the next round is strictly better.}
+\paragraph{Part 1: if the algorithm stops, its answer is the best fit.}
+Suppose a round leaves the result unchanged, and let $\hat x$, with
+residual $\hat r$, be the answer that went into it --- the previous
+round's merged result. Suppose also that some $x^*$ fits better:
+$F(x^*)<F(\hat x)$.
 
-\paragraph{Step 3: only finitely many values are possible.}
-Each iterate is the exact NNLS optimum over some subset of the $n$
-columns, and there are at most $2^{\,n}$ subsets, hence finitely many
-attainable objective values. A sequence that never increases, and
-strictly decreases whenever the current answer is wrong, cannot wander
-in a finite set forever. After finitely many rounds the algorithm must
-be at a global optimum (Theorem~1(a)). The $2^{\,n}$ bound is
-extremely loose; the article's experiments terminate within 2--13
-rounds.
+\emph{The unexplained data point toward the better answer.} By
+Section~2, $\hat r^{\T}A(x^*-\hat x)>0$. Every component that $\hat x$
+uses has $a_j^{\T}\hat r=0$, so $\hat r^{\T}A\hat x=0$, and therefore
+\begin{equation*}
+\hat r^{\T}Ax^*\;=\;\sum_j x^*_j\,a_j^{\T}\hat r\;>\;0 .
+\end{equation*}
+The amplitudes $x^*_j$ are nonnegative, so at least one component $j$
+that the better answer uses has $a_j^{\T}\hat r>0$.
 
-\paragraph{Step 4: ``no change'' is a certificate, not a heuristic.}
-If two consecutive rounds return the same objective value, the
-previous answer must already have been globally optimal --- otherwise
-Step~2 would have forced a strict decrease. An unchanged support
-implies an unchanged value (Lemma~4(ii)), so the implemented
+\emph{That component gets a fair trial.} In the next round, $j$ lies
+in some block, because the blocks cover the whole matrix, and that
+block also contains every component of $\hat x$, because the current
+support is fed back into every block. Inside it, $\hat x$ plus a little
+of component $j$ is a legal answer, and by Section~2 it fits strictly
+better than $\hat x$; the exact block solve does at least as well.
+
+\emph{The gain reaches the top.} The merged result is at least as good
+as the best block, so the round's misfit is strictly below
+$F(\hat x)$. Neither stopping test can then fire: the value has
+changed, and an unchanged support would have forced an unchanged value
+(Lemma~4(ii) of the article). This contradicts the assumption that the
+round left the result unchanged. Hence $\hat x$ is a best fit, and so
+is the round's own answer, which has the same misfit: the implemented
 ``results no longer vary'' test is a sound proof of global optimality,
-not merely an empirical stopping rule (Theorem~1(b)). One refinement:
-the support test alone is sound but not complete --- under non-unique
-optima, supports can cycle among optimal solutions indefinitely --- so
-it is the \emph{value} test that guarantees halting, at round $K{+}1$
+not merely an empirical stopping rule (Theorem~1(b)). The article
+reaches the same conclusion through the pricing test of Lemmas~3
+and~7, which finds an improving column without reference to $x^*$.
+
+\paragraph{Part 2: the algorithm does stop.}
+Suppose it runs forever. The misfit never increases, and it never
+stays the same, because the value test would then stop the algorithm;
+so it decreases strictly, round after round. But each round's answer
+is the exact optimum over some subset of the $n$ columns, and there
+are at most $2^{\,n}$ subsets, hence finitely many possible misfit
+values. A strictly decreasing sequence cannot run forever in a finite
+set --- a contradiction. The algorithm therefore stops after finitely
+many rounds, and by Part~1 it stops at a best fit (Theorem~1(a)
+and~(c)). The $2^{\,n}$ bound is extremely loose; the article's
+experiments stop within 2--13 rounds.
+
+\paragraph{Why the value test matters.}
+Part~1 works for either stopping test, but Part~2 needs the value
+test: with the support test alone, running forever does not force the
+misfit to keep falling. Under non-unique optima the misfit can sit at
+its minimum while consecutive rounds keep returning different optimal
+supports; the article's duplicated-column probe found such a cycle,
+of period three. The support test is thus sound but not complete, and
+it is the value test that guarantees halting, at round $K{+}1$
 exactly, $K$ being the first optimal round (Theorem~1(c)).
 Proposition~1 of the article shows why the feedback matters: a single
 pass without it can lock in a strictly suboptimal answer.
@@ -166,27 +199,27 @@ coverage and feedback):
 
 \begin{enumerate}
 \item \textbf{Exact block solves.} Every restricted NNLS problem is
-  solved exactly. Without it, Steps~1--2 lose their inequalities; the
+  solved exactly. Without it, the inequalities of Section~3 fail; the
   article's Proposition~2 then bounds, after the fact, how far a
   returned answer can be from optimal.
 \item \textbf{Full coverage.} Every round's blocks cover every column
-  of the fixed full matrix. Without it, the improving column of
-  Step~2 might never reappear.
+  of the fixed full matrix. Without it, the improving component of
+  Part~1 might never get its trial.
 \item \textbf{Feedback of the incumbent.} The previous solution's
   complete support is included in every block. Without it, the block
-  holding an improving column may be unable to reproduce the current
-  solution, and Step~2 fails.
+  holding an improving component may be unable to reproduce the
+  current solution, and Part~1 fails.
 \item \textbf{Whole-support merging.} Merge stages pass complete
   returned supports upward, never splitting or truncating them
   (condition (H3) of the article). Without it, a gain found in a
-  block can be lost on the way to the root, and the certificate of
-  Step~4 loses its soundness proof.
+  block can be lost on the way to the root, and the algorithm can
+  then stop at a wrong answer (Section~8 of the article).
 \end{enumerate}
 
-\noindent In one sentence: \emph{every omitted column gets another
-chance to explain the current residual, so a non-optimal fit must keep
-improving; and since only finitely many restricted optimal values
-exist, the
-improvement must end --- at the global optimum.}
+\noindent In one sentence: \emph{a wrong answer cannot survive a
+round, because some component of any better answer points toward the
+unexplained data and gets a fair trial alongside the whole current
+answer; and since only finitely many restricted optimal values exist,
+the improvement must end --- at the global optimum.}
 
 \end{document}
