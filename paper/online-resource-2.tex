@@ -42,11 +42,15 @@ Sections 1--3 describe the current release, v4.2.0 (commit
 with source locations at that tag (the logic is as in v4.1.0);
 Section~4 notes where the development line differs. Numbered results
 are the article's. Sections 2--3 assume the noise-free configuration
-(\texttt{noisflag}~$=0$): with time- or radially-invariant noise
-fitting, the release's block solver passes the normal equations of the
-noise-reduced problem to its NNLS routine as if they were the design
-matrix, which does not in general solve the restricted least-squares
-problem, so (H1) fails.
+(\texttt{noisflag}~$=0$). With time- or radially-invariant noise
+fitting alone, the release's block solver passes the normal equations
+of the noise-reduced problem to its NNLS routine as if they were the
+design matrix, which does not in general solve the restricted
+least-squares problem. With both, the system it passes this way
+removes only the per-radius means of the data and of the model
+columns, adding back their grand means
+(\texttt{utils/us\_solve\_sim.cpp}:2015--2046, 2111, 2149), so the
+radially invariant noise is not projected out. Either way (H1) fails.
 
 \section*{1\quad Merge and feedback structure: (H2) and (H3)}
 
@@ -101,18 +105,22 @@ the iteration cap before anything else, so a stopping test at round
 $k$ can fire only if the cap exceeds $k$. The cap comes from the job
 request (\texttt{parameters["max\_iterations"]}). In a Monte Carlo
 run, a single master raises a cap of 1 to 5
-(\texttt{2dsa\_master.cpp}:20--23) for the run's first fit only (the
-fit to the measured data, of the first dataset in a composite job);
-later fits revert to the requested cap
-(line 182), so with a cap of 1 the replicates are single passes. With
-parallel masters, Monte Carlo runs do not refine at all, and composite
-jobs refine with the requested cap but reset the pass counter and the
-stored previous pass only when the dataset changes
-(\texttt{pmasters\_compjob.cpp}:642), so in a later meniscus or Monte
-Carlo fit of the same dataset the first test either meets the cap at
-once or compares the new fit's first pass with the previous fit's.
-\emph{Rollback:} past half the cap, a pass whose variance worsens ends
-refinement. \emph{Value:} the variance change falls below $10^{-100}$
+(\texttt{2dsa\_master.cpp}:20--23) for the run's first fit only, the
+fit to the measured data; later fits revert to the requested cap
+(line 182), so with a cap of 1 the replicates are single passes. The
+parallel masters of a Monte Carlo run never refine: every fit, the
+first included, is a single pass. Composite jobs on parallel masters
+refine every fit, replicates included, with the requested cap
+(\texttt{pmasters\_compjob.cpp}:522--532), but reset the pass counter
+only when the dataset changes (line 642) and never reset the stored
+previous pass. The first test of a later meniscus or Monte Carlo fit
+of the same dataset therefore meets the cap at once, compares the new
+fit's first pass with a pass of the previous fit, or, after a rollback
+at pass~2 (possible with caps 3 to 5), starts afresh, since that
+rollback leaves the counter at~1 (\texttt{2dsa\_master.cpp}:831).
+\emph{Rollback:} from pass $\max(2,\lfloor\mathrm{cap}/2\rfloor)$ on, a
+pass whose variance worsens ends refinement (lines 825--829).
+\emph{Value:} the variance change falls below $10^{-100}$
 (\texttt{min\_variance\_improvement}). \emph{Solute set:} the solute
 set repeats with all concentrations within 10\%, a test stricter than
 support repetition.
@@ -181,8 +189,13 @@ The development line (4.3.0-dev, commit \texttt{0eee7f31f} of
   columns onto the orthogonal complement of the noise subspace and
   solves the projected NNLS problem (\texttt{utils/us\_solve\_sim.cpp},
   \texttt{nnls\_noise}): an exact solve of the restricted problem with
-  the noise optimized out. That configuration is not examined further
-  here.
+  the noise optimized out. In the interactive program, however, every
+  meniscus, bottom or Monte Carlo model after the first queues the
+  first-level blocks of its first round with noise fitting off
+  (\texttt{us\_2dsa\_process.cpp}:1667), while its merges and later
+  rounds fit noise, so the noise is not carried in every subproblem,
+  which the article's Limitations require. Noise fitting is not
+  examined further here.
 \item Unchanged: the norm screen, the four exits and their order, the
   optical-density proviso, the stored model after a rollback, and the
   interactive program's tests, defaults and records across models.

@@ -2,9 +2,9 @@
 
 A machine-checked formalization, in Lean 4 with Mathlib, of the results of
 *Exactness of an iterated divide-and-conquer method for large-scale
-nonnegative least squares*. About 1,500 lines, with no `sorry`. Every main result depends
-only on Lean's three standard axioms (`propext`, `Classical.choice`,
-`Quot.sound`); `AxiomCheck.lean` prints them.
+nonnegative least squares*. About 1,500 lines, with no `sorry`. Every result
+in the table below depends only on Lean's three standard axioms (`propext`,
+`Classical.choice`, `Quot.sound`); `AxiomCheck.lean` prints them for each.
 
 Pinned versions: Lean `v4.36.0` (`lean-toolchain`), Mathlib `v4.36.0`
 (commit `fc4f59e`, `lake-manifest.json`).
@@ -42,7 +42,7 @@ Names are in the `NnlsDc` namespace.
 | Theorem 1(b), soundness of the stopping rule | `Run.theorem1_b`, `Run.stop_sound` | `Algorithm` |
 | Theorem 1(c), halting at round `K + 1` | `Run.theorem1_c` | `Algorithm` |
 | Theorem 2 | `Run.theorem2`, `Run.theorem2_unique`, `Problem.isGlobalMin_iff`, `Problem.eq_of_isGlobalMin` | `Outputs` |
-| Proposition 1 | `Counterexample.single_pass`, `Counterexample.single_pass_tree`, `Counterexample.merged_residual`, `Counterexample.optimum`, `Counterexample.refinement_round` | `Counterexample` |
+| Proposition 1 | `Counterexample.single_pass`, `Counterexample.single_pass_tree`, `Counterexample.single_pass_supp`, `Counterexample.merged_residual`, `Counterexample.optimum`, `Counterexample.refinement_round`, `Counterexample.two_rounds` | `Counterexample` |
 | Proposition 2 | `Problem.prop2` | `Inexact` |
 | Section 6, data-only bound on `‖x*‖₁` | `Problem.l1_bound`, `Problem.l1_le_M`, `Problem.l1_le_M_coord` | `Inexact` |
 | Section 8, re-chunking instance | `Rechunk.stops_suboptimal` | `Rechunk` |
@@ -55,10 +55,18 @@ Names are in the `NnlsDc` namespace.
   candidate set it solved and the solution it returned, and a merge node may
   have any number of children. A run of Algorithm 2 is a sequence of such
   trees, rounds `k ≥ 1`, with round 1 the non-iterated pass.
+- A `Run` is an infinite sequence of rounds, while Algorithm 2 halts. A run
+  that halts extends to a `Run`, since Lemma 1 (`Problem.exists_isMin`)
+  supplies the minimizers of any further rounds, and the results concern
+  only rounds up to the halting round `K + 1`.
 - (H1)–(H3) are hypotheses on a run, and nothing else is assumed. Partitions
   and merge trees may change from round to round. Which minimizer a node
   returns is arbitrary, and may differ between nodes that solve the same
   candidate set.
+- `Counterexample` takes Proposition 1's single pass in its canonical
+  instantiation, leaves `S₁` and `S₂` and an atomic merge, as the article
+  does: (H2)–(H3) also admit the candidate set `{1, 2, 3}`, which fits `b`
+  exactly. `two_rounds` states both rounds for a `Run`.
 - `Rechunk` keeps (H1) and (H2) but drops (H3). It exhibits the article's
   two-column instance, where both stopping tests fire at `F = 1/4` while
   `v* = 0`.

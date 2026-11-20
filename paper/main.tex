@@ -300,8 +300,8 @@ Algorithm~\ref{alg:round} states one round in the notation
 of~\cite{brookes2006}; Algorithm~\ref{alg:iter} states the iteration.
 Round $k$ receives the incumbent result set $R_{k-1}$ (with
 $R_0=\varnothing$) and produces the iterate $x_k$; the round with
-$R_0=\varnothing$ is exactly the basic (non-iterated) scheme of
-\cite[Text~1]{brookes2006}, and the loop of Algorithm~\ref{alg:iter} is
+$R_0=\varnothing$ is, in the canonical instantiation defined below, the
+basic (non-iterated) scheme of \cite[Text~1]{brookes2006}, and the loop of Algorithm~\ref{alg:iter} is
 the iterative variant of \cite[Section~3.2]{brookes2006}. The two
 stopping
 tests in Algorithm~\ref{alg:iter} are consistent: since
@@ -543,8 +543,9 @@ altogether (Section~\ref{sec:discussion}).
 
 \begin{proposition}\label{prop:counter}
 There is a problem with $m=3$, $n=4$ and a two-block partition on which
-the non-iterated scheme (Algorithm~\ref{alg:round} with
-$R=\varnothing$) returns $F=\tfrac1{24}$, equivalently
+the non-iterated scheme in its canonical instantiation
+(Algorithm~\ref{alg:round} with $R=\varnothing$, $B_i=S_i$ and an atomic
+merge) returns $F=\tfrac1{24}$, equivalently
 $\lVert r\rVert^2=\tfrac1{12}$, while $v^*=0$; one refinement round
 reaches $v^*$.
 \end{proposition}
@@ -577,7 +578,9 @@ $a_2^{\T}r=a_4^{\T}r=\tfrac16>0$ at the merged solution. In the first
 refinement round the leaf problems $\prob{\{1,2,3\}}$ and
 $\prob{\{1,3,4\}}$ both admit exact fits (e.g.
 $x=(\tfrac{\sqrt2}{2},\tfrac12,\sqrt2,0)$ for the former), so the round
-terminates with value $0=v^*$.
+terminates with value $0=v^*$. That point fits $b$ on $\{1,2,3\}$, a
+leaf or merge set that (H2)--(H3) admit even in the first round, which
+is why the statement fixes the canonical instantiation.
 \end{proof}
 
 \begin{remark}\label{rem:mechanism}
@@ -673,7 +676,10 @@ Section~\ref{sec:discussion} are machine-checked in
 Lean~4~\cite{demoura2021} with Mathlib~\cite{mathlib2020}, using only
 Lean's standard axioms; the statements about the algorithm cover every
 run satisfying (H1)--(H3), whatever its partitions, merge trees and
-choices among minimizers.
+choices among minimizers. A run is formalized as an unending sequence of
+rounds; a halted run extends to one, Lemma~\ref{lem:exist} supplying
+the further minimizers, and the statements concern only rounds up to
+$K{+}1$ (Theorem~\ref{thm:main}(c)).
 
 Numerically, the analysis was checked with a Python implementation of
 Algorithms~\ref{alg:round}--\ref{alg:iter} using the active-set solver
@@ -832,7 +838,7 @@ $m=80$ with $n\in\{960,\,3840,\,15360\}$ --- 4$\times$ to 64$\times$
 the base suite --- block counts scaled to keep roughly 60 columns per
 block, and fan-in 4 (Table~\ref{tab:scaling}). Round counts remain in
 the single digits and terminal agreement with the full-grid reference
-stays at roundoff; the whole sweep takes under a minute in the
+stays at roundoff; the whole sweep takes about a minute in the
 released scripts.
 
 \begin{table}[t]
