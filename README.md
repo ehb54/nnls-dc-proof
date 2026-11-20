@@ -31,6 +31,10 @@ relates to these conditions is set out in Online Resource 2.
 - `nnls_dc_equivalence.md` — the working proof note that preceded the
   manuscript, kept for its extended remarks. Its numbering differs, and
   where the two differ the manuscript is authoritative.
+- `lean/` — a Lean 4 + Mathlib formalization of the article's lemmas,
+  Theorems 1–2, Propositions 1–2, the Section 6 bound on `‖x*‖₁` and the
+  Section 8 re-chunking instance; machine-checked, no `sorry` (see
+  `lean/README.md`).
 
 ## Environment
 

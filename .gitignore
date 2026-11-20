@@ -16,3 +16,6 @@ paper/brookes_nnls_dc_optlett_draft*.pdf
 # phone number); the leading * also catches the versioned deliverables
 *cover_letter*
 paper/UM_letterhead.pdf
+
+# Lean build tree (Mathlib and its cache are several GB)
+lean/.lake/
