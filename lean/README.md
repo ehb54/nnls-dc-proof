@@ -82,3 +82,7 @@ Not formalized:
 - the numerical experiments of Section 7;
 - Remark 1's observation that the support test alone can cycle;
 - the bound of Section 3 on the support size of basic solutions.
+
+## License
+
+MIT, like the repository's scripts (see `../LICENSE`).

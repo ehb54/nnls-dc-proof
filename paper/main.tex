@@ -52,14 +52,14 @@ divide-and-conquer method for large-scale nonnegative least squares}
 \state{Montana}, \country{USA}}}
 
 \abstract{
-Model-based fitting of experimental data frequently leads to nonnegative
-least squares (NNLS) problems whose direct solution exceeds a single
-workstation's memory capacity or practical time budget; analytical
+Model-based fitting of experimental data often yields nonnegative
+least squares (NNLS) problems whose direct solution exceeds a
+workstation's memory or time budget; analytical
 ultracentrifugation analyses use grids of $10^{5}$--$10^{6}$ basis
 functions ($1.5\times10^{6}$ in the largest reported run). A
 divide-and-conquer method introduced at SC'06 addresses this bottleneck:
 the parameter set is partitioned, NNLS is solved on each block, the
-supports of the block solutions are unioned and re-solved, and, in an
+block solutions' supports are unioned and re-solved, and, in an
 iterative variant, the support of the final solution is fed back into
 every block and the procedure repeated until the result no longer varies.
 The iterative variant has been in production use in the UltraScan
@@ -74,10 +74,9 @@ always coincide with those of the full computation; the solution itself
 coincides under a standard uniqueness condition. A four-column
 counterexample shows that the non-iterated scheme can be suboptimal by a
 fixed fraction of the signal, so the feedback rounds are necessary.
-Suboptimality under inexact solves and pricing is bounded, and the
-analysis is
-confirmed numerically on correlated designs representative of the
-motivating application.}
+Suboptimality under inexact solves and pricing is bounded. The proofs
+are machine-checked in Lean, and the analysis is confirmed numerically
+on correlated designs typical of the motivating application.}
 
 \keywords{nonnegative least squares, divide and conquer, column
 generation, active-set methods, global optimality certificate,
@@ -165,10 +164,10 @@ rounds are necessary rather than cosmetic
 $\delta\lVert x^*\rVert_1+\varepsilon$ under inexact pricing
 (tolerance $\delta$) and inexact complementarity (tolerance
 $\varepsilon$) (Proposition~\ref{prop:inexact}); and
-\item[(v)] numerical confirmation on correlated designs representative
-of the motivating application, with the merge-node and per-round
-inequalities of the proof asserted in every trial
-(Section~\ref{sec:numerics}).
+\item[(v)] machine-checked proofs of these results, and numerical
+confirmation on correlated designs representative of the motivating
+application, with the proof's merge-node and per-round inequalities
+asserted in every trial (Section~\ref{sec:numerics}).
 \end{enumerate}
 
 The analysis places the method in a classical lineage, and we are
@@ -214,7 +213,7 @@ Section~\ref{sec:alg} formalizes the algorithm;
 Section~\ref{sec:main} proves the main results;
 Section~\ref{sec:counter} gives the counterexample;
 Section~\ref{sec:inexact} treats inexact solves and pricing;
-Section~\ref{sec:numerics} reports the numerical checks; and
+Section~\ref{sec:numerics} reports the formal and numerical checks; and
 Section~\ref{sec:discussion} discusses implementation guidance,
 limitations, and extensions.
 
@@ -664,9 +663,19 @@ $M=\sqrt m\,\lVert b\rVert_2/\min_j\mathbf 1^{\T}a_j$ serves. Absent
 such structure, Proposition~\ref{prop:inexact} should be read as a
 conditional a~posteriori bound.
 
-\section{Numerical illustration}\label{sec:numerics}
+\section{Formal and numerical verification}\label{sec:numerics}
 
-The analysis was checked with a Python implementation of
+Lemmas~\ref{lem:exist}--\ref{lem:strict},
+Theorems~\ref{thm:main}--\ref{thm:outputs},
+Propositions~\ref{prop:counter}--\ref{prop:inexact}, the bound on $M$ of
+Section~\ref{sec:inexact} and the instance of
+Section~\ref{sec:discussion} are machine-checked in
+Lean~4~\cite{demoura2021} with Mathlib~\cite{mathlib2020}, using only
+Lean's standard axioms; the statements about the algorithm cover every
+run satisfying (H1)--(H3), whatever its partitions, merge trees and
+choices among minimizers.
+
+Numerically, the analysis was checked with a Python implementation of
 Algorithms~\ref{alg:round}--\ref{alg:iter} using the active-set solver
 \texttt{scipy.optimize.nnls}~\cite{virtanen2020} for every subproblem
 and atomic merge trees with fan-in 2 or 4; the scripts, with fixed
@@ -824,12 +833,7 @@ the base suite --- block counts scaled to keep roughly 60 columns per
 block, and fan-in 4 (Table~\ref{tab:scaling}). Round counts remain in
 the single digits and terminal agreement with the full-grid reference
 stays at roundoff; the whole sweep takes under a minute in the
-released scripts. These experiments verify the theorem's inequalities,
-not production scale: every trial deliberately retains a tractable
-full-grid reference solve, whereas grids of
-$10^{5}$--$10^{6}$~\cite{brookes2006} are precisely where the
-reference is unavailable and the certificate of
-Theorem~\ref{thm:main} replaces it.
+released scripts.
 
 \begin{table}[t]
 \centering
@@ -921,10 +925,10 @@ executed, $K{+}1\le|V|{+}1$ (Theorem~\ref{thm:main}(c)), is
 combinatorial, in the spirit of finite-termination results for
 active-set and simplex methods, and we make no polynomial claim; the
 observed counts in Section~\ref{sec:numerics} are at most 13, but a
-worst-case analysis remains open. The reported suites are sized so
-that every trial retains a full-grid reference solve; they verify the
-proof's inequalities and, in Table~\ref{tab:scaling}, scaling to
-$n=15360$, not production scale. The analysis fixes the column set
+worst-case analysis remains open. The reported suites retain a full-grid
+reference solve in every trial and so stop at $n=15360$
+(Table~\ref{tab:scaling}); at production scale the reference is
+unavailable and the certificate of Theorem~\ref{thm:main} replaces it. The analysis fixes the column set
 $S$: per-round partitions may change, but enlarging or moving the grid
 itself between rounds is a different algorithm and outside the present
 scope. Finally,
@@ -971,16 +975,16 @@ R01~GM120600 (to E.H.B.).
 
 \paragraph{Use of AI tools.}
 During the preparation of this work the author used Claude (Anthropic)
-in the development of the proofs, the verification software, and the
-manuscript text. The author has reviewed and verified all mathematical
+in the development of the proofs, the verification software, the Lean
+formalization, and the manuscript text. The author has reviewed and verified all mathematical
 arguments and computational results and takes sole responsibility for
 the content of this publication.
 
 \paragraph{Data availability.}
 {\sloppy
 The verification and experiment scripts (Python, using
-\texttt{scipy.optimize.nnls}), together with the \LaTeX\ source of this
-note, are available at \url{https://github.com/ehb54/nnls-dc-proof}
+\texttt{scipy.optimize.nnls}), the Lean~4 formalization, and the
+\LaTeX\ source of this note are available at \url{https://github.com/ehb54/nnls-dc-proof}
 and are archived at \url{https://doi.org/10.5281/zenodo.21839524}.
 \par}
 

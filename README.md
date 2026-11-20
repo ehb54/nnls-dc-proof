@@ -55,8 +55,9 @@ the tables and text reproduces exactly.
 
 ## License
 
-The scripts (`verify.py`, `experiments.py`, `paper/Makefile`) are
-released under the MIT License (see `LICENSE`). The manuscript and
+The scripts (`verify.py`, `experiments.py`, `paper/Makefile`) and the
+Lean formalization (`lean/`) are released under the MIT License (see
+`LICENSE`). The manuscript and
 supplement texts (`paper/*.tex`, `paper/refs.bib`, the figures, the
 PDFs, and `nnls_dc_equivalence.md`) are (c) 2026 Emre H. Brookes, all
 rights reserved pending journal publication.
