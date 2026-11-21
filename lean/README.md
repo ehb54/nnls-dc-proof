@@ -57,8 +57,8 @@ Names are in the `NnlsDc` namespace.
   trees, rounds `k ≥ 1`, with round 1 the non-iterated pass.
 - A `Run` is an infinite sequence of rounds, while Algorithm 2 halts. A run
   that halts extends to a `Run`, since Lemma 1 (`Problem.exists_isMin`)
-  supplies the minimizers of any further rounds, and the results concern
-  only rounds up to the halting round `K + 1`.
+  supplies the minimizers of any further rounds. The extension leaves
+  rounds `1, …, K + 1` unchanged, and those are all that Algorithm 2 uses.
 - (H1)–(H3) are hypotheses on a run, and nothing else is assumed. Partitions
   and merge trees may change from round to round. Which minimizer a node
   returns is arbitrary, and may differ between nodes that solve the same

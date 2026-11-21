@@ -68,8 +68,8 @@ full-grid solution; however, a proof has been lacking. We prove that,
 provided each subproblem is solved exactly and merge steps union whole
 supports, the iterated scheme reaches a global minimizer of the full
 problem after finitely many rounds, for every partition sequence and
-merge topology, and that the implemented stopping rule is a sound
-certificate of global optimality. The optimal value and fitted vector
+merge topology, and that an exactly unchanged support or value
+certifies global optimality. The optimal value and fitted vector
 always coincide with those of the full computation; the solution itself
 coincides under a standard uniqueness condition. A four-column
 counterexample shows that the non-iterated scheme can be suboptimal by a
@@ -149,9 +149,10 @@ moving-subgrid partitions of~\cite{brookes2006}) and arbitrary merge
 topologies, under two natural conditions besides the coverage and
 feedback that define the scheme: subproblems are solved exactly, and
 merge steps union \emph{whole} supports (Theorem~\ref{thm:main});
-\item[(ii)] soundness of the implemented stopping rule: a round that
-leaves the result unchanged certifies global optimality
-(Theorem~\ref{thm:main}); the optimal value, fitted vector, and residual
+\item[(ii)] soundness of the stopping rule: a round that leaves the
+support or the value exactly unchanged certifies global optimality
+(Theorem~\ref{thm:main}), while a positive tolerance on the improvement
+does not (Section~\ref{sec:discussion}); the optimal value, fitted vector, and residual
 then coincide with the full computation, and the amplitude vector
 itself does too under a standard uniqueness condition
 (Theorem~\ref{thm:outputs});
@@ -198,8 +199,9 @@ nodes, yet cannot lose ground under condition (H3)
 solves themselves --- the returned supports --- with no a-priori cap,
 in contrast to restricted simplicial decomposition, which bounds
 retention by rule and must re-establish finiteness under the
-bound~\cite{hearn1985}; and the implemented stopping rule is proved
-to be a sound certificate, with a counterexample delimiting the
+bound~\cite{hearn1985}; and the stopping rule, an exactly unchanged
+support or value, is proved to be a sound certificate, with a
+counterexample delimiting the
 non-iterated scheme. The cap is unnecessary because basic solutions
 returned by Lawson--Hanson-type solvers have supports bounded by the
 rank of $A$, which is what keeps the merge stages small in practice. Safe-screening
@@ -463,8 +465,9 @@ $V:=\{\Val(C):C\subseteq S\}$; and $v_k=v^*$ with $x_k$ a global
 minimizer for every $k\ge K$;
 \item[\emph{(b)}] if any round leaves the value unchanged,
 $v_k=v_{k-1}$ for some $k\ge2$, then $x_{k-1}$ and $x_k$ are global
-minimizers; in particular the implemented stopping rule --- the result
-no longer varies --- is a sound certificate of global optimality;
+minimizers; in particular the stopping rule of Algorithm~\ref{alg:iter}
+--- the result no longer varies --- is a sound certificate of global
+optimality;
 \item[\emph{(c)}] Algorithm~\ref{alg:iter} halts at round
 $K{+}1\le|V|{+}1$ exactly: no stopping test can fire at any round
 $k\le K$, and the value test fires at round $K{+}1$.
@@ -598,9 +601,9 @@ $\{(\sqrt2(t+\tfrac34),\,\tfrac14-t,\,\sqrt2(\tfrac34-t),\,
 $x_2+x_4=\tfrac12$. A retention threshold inside the blocks can repair
 particular instances, but the leniency required to keep a needed
 column is instance-dependent, and lenient retention forfeits the
-sparsification that motivates the method; the refinement round instead
-repairs every instance, because it re-prices every column against the
-merged residual. In the
+sparsification that motivates the method; iterated refinement instead
+repairs every instance (Theorem~\ref{thm:main}), because every round
+re-prices every column against the merged residual. In the
 motivating application the basis functions vary smoothly over the
 grid, so each block typically contains near-substitutes for the
 columns the full solution needs; this is consistent with the fast
@@ -671,15 +674,15 @@ conditional a~posteriori bound.
 Lemmas~\ref{lem:exist}--\ref{lem:strict},
 Theorems~\ref{thm:main}--\ref{thm:outputs},
 Propositions~\ref{prop:counter}--\ref{prop:inexact}, the bound on $M$ of
-Section~\ref{sec:inexact} and the instance of
+Section~\ref{sec:inexact} and the re-chunking instance of
 Section~\ref{sec:discussion} are machine-checked in
 Lean~4~\cite{demoura2021} with Mathlib~\cite{mathlib2020}, using only
 Lean's standard axioms; the statements about the algorithm cover every
 run satisfying (H1)--(H3), whatever its partitions, merge trees and
 choices among minimizers. A run is formalized as an unending sequence of
 rounds; a halted run extends to one, Lemma~\ref{lem:exist} supplying
-the further minimizers, and the statements concern only rounds up to
-$K{+}1$ (Theorem~\ref{thm:main}(c)).
+the further minimizers, and Algorithm~\ref{alg:iter} uses only rounds
+through $K{+}1$ (Theorem~\ref{thm:main}(c)).
 
 Numerically, the analysis was checked with a Python implementation of
 Algorithms~\ref{alg:round}--\ref{alg:iter} using the active-set solver
@@ -773,10 +776,11 @@ exactly feasible trials (Gaussian 60/60; duplicated 32/32) and in one
 of the eight duplicated trials with $v^*>0$, while the support rule
 fired in the remaining 107 --- both kernel suites (60/60 and 40/40)
 and 7 of the 8 non-degenerate duplicated trials. Returned supports
-matched the full-grid solve's in all 100 kernel-suite trials --- the
-regime where Theorem~\ref{thm:outputs}'s uniqueness clause applies ---
-and differed in 60 of 60 Gaussian and 34 of 40 duplicated trials, as
-Theorem~\ref{thm:outputs} permits. Second, from Fig.~\ref{fig:convergence}a the value sequence
+matched the full-grid solve's in all 100 kernel-suite trials ---
+consistent with unique minimizers there, although matching supports do
+not by themselves verify the independence condition of
+Theorem~\ref{thm:outputs} --- and differed in 60 of 60 Gaussian and 34
+of 40 duplicated trials, as Theorem~\ref{thm:outputs} permits. Second, from Fig.~\ref{fig:convergence}a the value sequence
 drops by many orders of magnitude within a few rounds and reaches the
 roundoff floor, consistent with the finite exact termination of
 Theorem~\ref{thm:main}; a plot cannot by itself distinguish finite
@@ -812,21 +816,23 @@ different supports were exhibited (the returned and reference solves),
 consistent with the failure of Theorem~\ref{thm:outputs}'s criterion,
 since $r^*=0$ makes $Z=S$, whose 160 columns in $\R^{40}$ are
 dependent. The stall-rule terminations are not covered by
-Theorem~\ref{thm:main}(b); supplying $M=\lVert x^*\rVert_1$ from the
+Theorem~\ref{thm:main}(b); taking $M$ as the $\ell_1$ norm of the
 reference solve --- $M\in[5.39,\,38.71]$ across these runs, and the very
 quantity a production run would have to bound by other means ---
-Proposition~\ref{prop:inexact} certifies an optimality gap
+Proposition~\ref{prop:inexact} gives the gap estimate
 $2(\delta M+\varepsilon)\le3.0\times10^{-12}$ across all 93 such runs,
 with $\delta$ and $\varepsilon$ in absolute units (the absolute
 $\delta$ reach $5.5\times10^{-14}$; Table~\ref{tab:trials}'s $\delta$
-column is normalized) --- a genuine but coarser certificate than the
-observed value gaps, as an a~posteriori bound must be --- while the
-107 support-rule terminations pass the test of
-Theorem~\ref{thm:main}(b) itself, which is exact under exact solves;
-in floating point, the data-only $M$ of Section~\ref{sec:inexact}
-(1.76--3.96 times $\lVert x^*\rVert_1$) certifies the 100 in the two
-kernel suites (nonnegative columns) with
-$2(\delta M+\varepsilon)\le3.4\times10^{-12}$. Finally,
+column is normalized) --- an estimate rather than a certificate, since
+a floating-point reference need not bound the norm of an exact
+minimizer --- while the 107 support-rule terminations pass the test of
+Theorem~\ref{thm:main}(b) itself, which is exact under exact solves.
+For the two kernel suites (nonnegative columns) the data-only $M$ of
+Section~\ref{sec:inexact} is a valid bound, 1.76--3.96 times the
+reference's $\ell_1$ norm, and gives
+$2(\delta M+\varepsilon)\le3.4\times10^{-12}$ for their 100 runs; a
+fully rigorous floating-point certificate would also bound the rounding
+in the computed $\delta$ and $\varepsilon$. Finally,
 with the value rule disabled the support test alone need not
 terminate (Remark~\ref{rem:stopping}): 3 of 40 duplicated-column runs
 failed to stabilize within 400 rounds, and one, followed to 2000,
@@ -877,9 +883,13 @@ global minimizers into itself, but it need not fix any particular
 minimizer, and that set is a continuum whenever the minimizer is
 non-unique --- whereas a strict
 contraction on a complete metric space has a unique fixed point; and no
-instance-independent contraction factor exists, since ill-conditioned
-(nearly parallel) columns make a single round's progress arbitrarily
-small relative to the distance from the optimum. What survives, and
+instance-independent contraction factor exists, since a single round's
+progress can be arbitrarily small relative to the distance from the
+optimum: for $0<t\le\tfrac12$, $a_1=(3,1,0)^{\T}$, $a_2=(2,0,t)^{\T}$,
+$a_3=(1,1,0)^{\T}$, $a_4=(0,2,0)^{\T}$, $b=(2,2,t)^{\T}$ and blocks
+$\{1,2\}$, $\{3,4\}$ in the canonical instantiation, rounds 1--3 return
+$F=t^2/2$, $t^2/(2+t^2)$ and $0=v^*$, so round~2 keeps the fraction
+$2/(2+t^2)$ of the gap, which tends to~1 as $t\to0$. What survives, and
 suffices, is that $F-v^*$ is a Lyapunov function for the round map ---
 nonincreasing by Lemma~\ref{lem:mono}, strictly decreasing off the
 solution set by Lemma~\ref{lem:strict}. Lyapunov descent alone would
@@ -910,17 +920,21 @@ $\operatorname{rank}(A)$ elements (Section~\ref{sec:alg}), a
 fan-in-$q$ atomic merge contains at most $q\operatorname{rank}(A)$
 candidate indices, giving a predictable memory bound while preserving
 the guarantee; this appears advisable in any implementation. Two
-further practical consequences: stopping on an unchanged \emph{value}
-is sound and robust under non-uniqueness (Remark~\ref{rem:stopping}),
-and the per-round pricing sweep of Section~\ref{sec:inexact} turns
-Proposition~\ref{prop:inexact} into a per-run optimality certificate
-whenever a bound $M\ge\lVert x^*\rVert_1$ is available. How the
+further practical consequences: stopping on an exactly unchanged
+\emph{value} is sound and robust under non-uniqueness
+(Remark~\ref{rem:stopping}), whereas a positive tolerance on the
+improvement is not --- in the parametrized instance above it fires at
+round~2 once $t$ is small enough --- and the per-round pricing sweep of
+Section~\ref{sec:inexact} turns Proposition~\ref{prop:inexact} into a
+per-run optimality certificate whenever a bound
+$M\ge\lVert x^*\rVert_1$ is available, which also covers a stop on
+such a tolerance. How the
 shipped UltraScan implementation relates to (H1)--(H3) and to the
 stopping certificate is examined in Online Resource~2; its main scope
 limits are that the analysis covers the noise-free configuration
 only, that the grid is screened by column norm before solving --- the
 certificate then applies to the screened grid rather than the nominal
-one --- and that only its unchanged-result stopping exits can carry the
+one --- and that only its exits on a repeated solute set can carry the
 certificate.
 
 \paragraph{Limitations.}
@@ -965,9 +979,9 @@ vector itself, which is relevant to regularized variants of the
 motivating analysis~\cite{brookes2010}. The practical trade-off is
 sparsity: the augmented matrix has full column rank, so the
 basic-solution support bound $|U|\le\operatorname{rank}(A)$ becomes
-vacuous, and supports --- hence merge sizes --- grow with the
-regularization weight; amplitude-level uniqueness is bought at the
-price of the sparsity that keeps the merges small. Overall, the
+vacuous and regularized solutions can be dense; amplitude-level
+uniqueness may then be bought at the price of the sparsity that keeps
+the merges small. Overall, the
 results place the iterated divide-and-conquer method on firm
 theoretical footing and should support its transfer to other spectrum-type NNLS
 applications whose scale --- in memory or in solve time --- exceeds a

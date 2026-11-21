@@ -126,20 +126,26 @@ set repeats with all concentrations within 10\%, a test stricter than
 support repetition.
 
 The solute-set exit is certified by Theorem~1(b), except at the first
-test of such a later fit; the cap and the rollback never are. The
-value exit --- exact value equality in effect --- is certified too,
-with the same exception, provided no data point reaches the
-optical-density limit: such points are zeroed, with their rows of the
-design matrix, in the problem solved but still counted in the reported
-variance, which then no longer tracks the objective. Under the same
-proviso the article's Lemma~6 rules the rollback out in exact
-arithmetic. In floating point, once the optimum is reached, a
-roundoff-level rise in the variance can trigger it before the
-solute-set test is evaluated, so a rollback exit marks a run without a
-certificate, not a suboptimal one. After a rollback, the stored model
-pairs the solutes of the worsened pass with the variance of the pass
-before it (\texttt{us\_mpi\_analysis.cpp}:1577 and 2099). The
-certified tests fired at rounds 4--13 in the article's
+test of such a later fit; the cap and the rollback never are, and
+neither is the value exit. Theorem~1(b) needs exact equality, while a
+round's strict improvement can be smaller than any fixed threshold: in
+the parametrized instance of the article's Section~8 with
+$t=\tfrac12$ and the data scaled by $10^{-51}$, this exit fires at
+round~2, short of the optimum. For data of ordinary magnitude the
+threshold lies far below double-precision resolution, so the exit fires
+only when consecutive computed variances are identical; certifying such
+a stop needs a separate pricing check, as in the article's
+Proposition~2. The variance also stops tracking the objective once a
+data point reaches the optical-density limit: such points are zeroed,
+with their rows of the design matrix, in the problem solved but still
+counted in the reported variance. Without such points the article's
+Lemma~6 rules the rollback out in exact arithmetic; in floating point,
+once the optimum is reached, a roundoff-level rise in the variance can
+trigger it before the solute-set test is evaluated, so a rollback exit
+marks a run without a certificate, not a suboptimal one. After a
+rollback, the stored model pairs the solutes of the worsened pass with
+the variance of the pass before it (\texttt{us\_mpi\_analysis.cpp}:1577
+and 2099). The article's support test fired at rounds 4--13 in its
 correlated-kernel suites, so a cap of 4 or less would bind first in
 every such trial.
 
@@ -162,14 +168,13 @@ count to 3, permitting one comparison, of round 2 with round 1.
 \smallskip
 \noindent The practical rule these notes support: treat a run as
 certified by the article's theory exactly when it ends on a certified
-exit --- on the MPI master, the solute-set exit, or the value exit
-when no data point reaches the optical-density limit, in either case
-other than at the first test of a later fit in a composite
-parallel-masters job (the job log names the exit that fired); in the
-interactive program, the solute-set test in a single fit, which it
-does not report separately, subject to the scheduling path of
-Section~1 --- and read the certificate as global optimality over the
-screened grid.
+exit --- on the MPI master, the solute-set exit, other than at the
+first test of a later fit in a composite parallel-masters job (the job
+log names the exit that fired); in the interactive program, the
+solute-set test in a single fit, which it does not report separately,
+subject to the scheduling path of Section~1 --- and read the
+certificate as global optimality over the screened grid. A stop on
+either program's variance test needs the pricing check.
 
 \section*{4\quad The development line}
 
@@ -190,7 +195,7 @@ The development line (4.3.0-dev, commit \texttt{0eee7f31f} of
   solves the projected NNLS problem (\texttt{utils/us\_solve\_sim.cpp},
   \texttt{nnls\_noise}): an exact solve of the restricted problem with
   the noise optimized out. In the interactive program, however, every
-  meniscus, bottom or Monte Carlo model after the first queues the
+  meniscus or bottom model after the first queues the
   first-level blocks of its first round with noise fitting off
   (\texttt{us\_2dsa\_process.cpp}:1667), while its merges and later
   rounds fit noise, so the noise is not carried in every subproblem,
