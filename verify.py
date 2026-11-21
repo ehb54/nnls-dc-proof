@@ -142,9 +142,10 @@ def dc_nnls(A, b, nblocks=None, blocks=None, iterative=True, fan_in=2,
             assert v_new <= vals[-1] + 1e-9 * (1.0 + abs(vals[-1])), \
                 "round-to-round monotonicity violated"
         vals.append(v_new)
+        # Both stopping tests of Algorithm 2 apply from round 2 on.
         stalled = value_rule and len(vals) >= 2 and \
             vals[-1] >= vals[-2] - 1e-12 * max(1.0, abs(vals[-2]))
-        fixed = (R_new == R)
+        fixed = len(vals) >= 2 and R_new == R
         R, x = R_new, x_new
         if not iterative:
             reason = "single_pass"

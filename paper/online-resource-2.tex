@@ -112,8 +112,9 @@ parallel masters of a Monte Carlo run never refine: every fit, the
 first included, is a single pass. Composite jobs on parallel masters
 refine every fit, replicates included, with the requested cap
 (\texttt{pmasters\_compjob.cpp}:522--532), but reset the pass counter
-only when the dataset changes (line 642) and never reset the stored
-previous pass. The first test of a later meniscus or Monte Carlo fit
+only when the dataset changes (line 642), not after every fit as a
+single master does (\texttt{2dsa\_master.cpp}:142), and never reset the
+stored previous pass. The first test of a later meniscus or Monte Carlo fit
 of the same dataset therefore meets the cap at once, compares the new
 fit's first pass with a pass of the previous fit, or, after a rollback
 at pass~2 (possible with caps 3 to 5), starts afresh, since that
@@ -125,32 +126,40 @@ pass whose variance worsens ends refinement (lines 825--829).
 set repeats with all concentrations within 10\%, a test stricter than
 support repetition.
 
-The solute-set exit is certified by Theorem~1(b), except at the first
-test of such a later fit; the cap and the rollback never are, and
-neither is the value exit. Theorem~1(b) needs exact equality, while a
-round's strict improvement can be smaller than any fixed threshold: in
-the parametrized instance of the article's Section~8 with
-$t=\tfrac12$ and the data scaled by $10^{-51}$, this exit fires at
-round~2, short of the optimum. For data of ordinary magnitude the
-threshold lies far below double-precision resolution, so the exit fires
-only when consecutive computed variances are identical; certifying such
-a stop needs a separate pricing check, as in the article's
-Proposition~2. The variance also stops tracking the objective once a
-data point reaches the optical-density limit: such points are zeroed,
-with their rows of the design matrix, in the problem solved but still
-counted in the reported variance. Without such points the article's
-Lemma~6 rules the rollback out in exact arithmetic; in floating point,
-once the optimum is reached, a roundoff-level rise in the variance can
-trigger it before the solute-set test is evaluated, so a rollback exit
-marks a run without a certificate, not a suboptimal one. After a
-rollback, the stored model pairs the solutes of the worsened pass with
-the variance of the pass before it (\texttt{us\_mpi\_analysis.cpp}:1577
-and 2099). The article's support test fired at rounds 4--13 in its
-correlated-kernel suites, so a cap of 4 or less would bind first in
-every such trial.
+Under (H1)--(H3), equal supports in consecutive rounds of the same fit
+certify optimality (Theorem~1(b)). With exact solves such a repetition
+leaves the variance exactly unchanged, so on the MPI master it ends
+refinement at the value test, which comes first; the solute-set test
+fires only when the variances differ, as they do in floating point, or
+at the first test of a later fit in a composite job, which compares two
+fits and is not covered. The value exit by itself certifies nothing:
+Theorem~1(b) needs exact equality, while a round's strict improvement
+can be smaller than any fixed threshold --- in the parametrized
+instance of the article's Section~8 with $t=\tfrac12$ and the data
+scaled by $10^{-51}$, this exit fires at round~2, short of the optimum.
+For computed variances of ordinary magnitude the threshold lies far
+below double-precision resolution, so the exit fires only when
+consecutive computed variances are identical. Nor do the cap and the
+rollback certify anything, and a rollback can end a fit short of the
+optimum: at the first test of a later fit in a composite job, after a
+single pass, since the article's Lemma~6 does not hold across fits; and
+in floating point whenever a round's improvement is below the rounding
+of the variance --- in the Section~8 family with $t=10^{-8}$, round~2's
+computed variance can exceed round~1's although round~2's solutes are
+not the optimal ones. Within a fit, in exact arithmetic, Lemma~6 rules
+the rollback out unless a data point reaches the optical-density
+limit: such points are zeroed, with their rows of the design matrix, in
+the problem solved but still counted in the reported variance, which
+then stops tracking the objective. After a rollback, the stored model
+pairs the solutes of the worsened pass with the variance of the pass
+before it (\texttt{us\_mpi\_analysis.cpp}:1568, 1577 and 2099); after a
+first-test rollback in a composite meniscus scan, that variance is the
+previous meniscus point's. The article's support test fired at rounds
+4--13 in its correlated-kernel suites, so a cap of 4 or less would bind
+first in every such trial.
 
 The interactive program stops when its solute set repeats --- the
-article's support test, certified by Theorem~1(b) --- or when the
+article's support test, a certificate under (H1)--(H3) --- or when the
 per-point variance changes by at most an absolute $10^{-12}$, a
 relaxation that differs from the relative test of the article's
 Section~7 and is likewise not covered by Theorem~1(b). Only in a
@@ -166,15 +175,14 @@ scheme of the article's Proposition~1. Enabling refinement sets the
 count to 3, permitting one comparison, of round 2 with round 1.
 
 \smallskip
-\noindent The practical rule these notes support: treat a run as
-certified by the article's theory exactly when it ends on a certified
-exit --- on the MPI master, the solute-set exit, other than at the
-first test of a later fit in a composite parallel-masters job (the job
-log names the exit that fired); in the interactive program, the
-solute-set test in a single fit, which it does not report separately,
-subject to the scheduling path of Section~1 --- and read the
-certificate as global optimality over the screened grid. A stop on
-either program's variance test needs the pricing check.
+\noindent The practical rule these notes support: under (H1)--(H3),
+equal supports in consecutive rounds of the same fit certify
+optimality over the screened grid, which excludes the first test of a
+later fit in a composite parallel-masters job and, in the interactive
+program, every model after the first and the scheduling path of
+Section~1. A run in floating point, whichever exit ended it, can be
+assessed with the pricing and complementarity residuals of the
+article's Proposition~2.
 
 \section*{4\quad The development line}
 

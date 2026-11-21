@@ -56,8 +56,14 @@ suite) reproduce Table 1, 20260809 the scaling probe of Table 2, and
 20260810 the cycling probe. Values printed by the code are unhalved
 squared residual norms ||Ax-b||^2 = 2F. The BLAS results are not
 bitwise reproducible from run to run, so regenerating the figure can
-shift the roundoff-level tails of panel (a) slightly; every number in
-the tables and text reproduces exactly.
+shift the roundoff-level tails of panel (a) slightly; on the machine
+and versions used for the manuscript, every number in the tables and
+text reproduces exactly. On another platform, or with other versions,
+roundoff-level entries such as the KKT residuals and the gap figures can
+differ, as can the number of duplicated-column trials whose returned
+support matches the reference's, since those minimizers are not unique
+(on Linux with numpy 2.5.3 and scipy 1.18.1, for example, the data-only
+figure of Section 7 is 4.1e-12 rather than 3.3e-12).
 
 ## License
 

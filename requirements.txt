@@ -1,5 +1,8 @@
 # Versions used for the results reported in the manuscript
 # (Python 3.13; later versions are expected to work but are untested).
+# uniqueness.py's reported check was run with numpy 2.5.3 and scipy 1.18.1
+# (Python 3.12); it regenerates the same instances (its identity check
+# matches experiments.py) and its test is exact.
 numpy==2.5.1
 scipy==1.18.0
 matplotlib==3.11.1

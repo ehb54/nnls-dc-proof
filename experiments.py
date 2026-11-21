@@ -314,8 +314,9 @@ def main():
                        for r in recs if r["v_full"] < feas_thresh)
     print(f"exactly feasible trials overall: {n_exact_feas}/200")
 
-    # A posteriori certified gap (Prop 2 with M = ||x*||_1 from the
-    # reference solve) for the runs that terminated on the stall rule.
+    # Reference-based gap estimate (Prop 2 with M taken as the l1 norm of
+    # the reference solve, which need not bound the norm of an exact
+    # minimizer) for the runs that terminated on the stall rule.
     # Prop 2 bounds F; report in v = 2F units.
     worst = 0.0
     n_stall = 0
@@ -328,12 +329,13 @@ def main():
                             2.0 * (r["delta_abs"] * r["x1"] + r["eps_abs"]))
                 m_lo, m_hi = min(m_lo, r["x1"]), max(m_hi, r["x1"])
                 d_hi = max(d_hi, r["delta_abs"])
-    print(f"certified gap bound 2(delta*||x*||_1 + eps) over the "
+    print(f"reference-based gap estimate 2(delta*||x_ref||_1 + eps) over the "
           f"{n_stall} stall-rule runs: max {worst:.3g}; "
-          f"M = ||x*||_1 in [{m_lo:.8g}, {m_hi:.8g}]; "
+          f"M = ||x_ref||_1 in [{m_lo:.8g}, {m_hi:.8g}]; "
           f"max absolute delta {d_hi:.3g}")
 
-    # The same certificate with the data-only M (Section 6) for the
+    # The Prop 2 bound with the data-only M (Section 6), valid up to the
+    # rounding in delta and eps, for the
     # support-rule runs of the two kernel suites, whose columns are
     # nonnegative: no reference solve needed.
     kern = [r for recs in (smooth, lattice) for r in recs
