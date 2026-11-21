@@ -776,11 +776,17 @@ exactly feasible trials (Gaussian 60/60; duplicated 32/32) and in one
 of the eight duplicated trials with $v^*>0$, while the support rule
 fired in the remaining 107 --- both kernel suites (60/60 and 40/40)
 and 7 of the 8 non-degenerate duplicated trials. Returned supports
-matched the full-grid solve's in all 100 kernel-suite trials ---
-consistent with unique minimizers there, although matching supports do
-not by themselves verify the independence condition of
-Theorem~\ref{thm:outputs} --- and differed in 60 of 60 Gaussian and 34
-of 40 duplicated trials, as Theorem~\ref{thm:outputs} permits. Second, from Fig.~\ref{fig:convergence}a the value sequence
+matched the full-grid solve's in all 100 kernel-suite trials, and there
+the uniqueness criterion of Theorem~\ref{thm:outputs} was verified
+directly: in exact rational arithmetic on the instances'
+double-precision data, the restricted solution on that support is
+positive, every other column prices strictly negatively, and the
+support's columns are independent, so the support is $Z$ and the
+minimizer is unique (the smallest such price is
+$3\times10^{-13}\max(1,\lVert A^{\T}b\rVert_\infty)$ in magnitude, too
+small for floating point to certify). Supports differed in 60 of 60
+Gaussian and 34 of 40 duplicated trials, as Theorem~\ref{thm:outputs}
+permits. Second, from Fig.~\ref{fig:convergence}a the value sequence
 drops by many orders of magnitude within a few rounds and reaches the
 roundoff floor, consistent with the finite exact termination of
 Theorem~\ref{thm:main}; a plot cannot by itself distinguish finite

@@ -28,12 +28,17 @@ relates to these conditions is set out in Online Resource 2.
   order as verify.py), the scaling probe and the cycling probe, prints
   the LaTeX table rows and the statistics quoted in the text, and renders
   `paper/figs/convergence.{pdf,png}`.
+- `uniqueness.py` — checks Theorem 2's uniqueness criterion on the 100
+  kernel-suite instances in exact rational arithmetic: the support of
+  the full-grid solve carries a positive restricted solution, every
+  other column prices strictly negative, and the support's columns are
+  independent. About 7 CPU-minutes, run in parallel.
 - `nnls_dc_equivalence.md` — the working proof note that preceded the
   manuscript, kept for its extended remarks. Its numbering differs, and
   where the two differ the manuscript is authoritative.
 - `lean/` — a Lean 4 + Mathlib formalization of the article's lemmas,
-  Theorems 1–2, Propositions 1–2, the Section 6 bound on `‖x*‖₁` and the
-  Section 8 re-chunking instance; machine-checked, no `sorry` (see
+  Theorems 1–2, Propositions 1–2, the Section 6 bound on `‖x*‖₁` and
+  both Section 8 instances; machine-checked, no `sorry` (see
   `lean/README.md`).
 
 ## Environment
@@ -44,6 +49,7 @@ Python needs numpy/scipy/matplotlib (tested versions pinned in
     python3 -m venv venv && venv/bin/pip install -r requirements.txt
     venv/bin/python verify.py
     venv/bin/python experiments.py
+    venv/bin/python uniqueness.py
 
 Seeds 20260807 (suites i, iii, iv) and 20260808 (interlaced-lattice
 suite) reproduce Table 1, 20260809 the scaling probe of Table 2, and
@@ -55,7 +61,8 @@ the tables and text reproduces exactly.
 
 ## License
 
-The scripts (`verify.py`, `experiments.py`, `paper/Makefile`) and the
+The scripts (`verify.py`, `experiments.py`, `uniqueness.py`,
+`paper/Makefile`) and the
 Lean formalization (`lean/`) are released under the MIT License (see
 `LICENSE`). The manuscript and
 supplement texts (`paper/*.tex`, `paper/refs.bib`, the figures, the
