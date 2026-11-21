@@ -5,3 +5,4 @@ import NnlsDc.Outputs
 import NnlsDc.Inexact
 import NnlsDc.Counterexample
 import NnlsDc.Rechunk
+import NnlsDc.SlowRound

@@ -51,3 +51,10 @@ in the README's table, in the article's order. -/
 #print axioms NnlsDc.Problem.l1_le_M_coord
 -- Section 8, the re-chunking instance
 #print axioms NnlsDc.Rechunk.stops_suboptimal
+-- Section 8, the parametrized instance (a slow round)
+#print axioms NnlsDc.SlowRound.rounds
+#print axioms NnlsDc.SlowRound.three_rounds
+#print axioms NnlsDc.SlowRound.optimum
+#print axioms NnlsDc.SlowRound.gap_fraction
+#print axioms NnlsDc.SlowRound.tolerance_fires
+#print axioms NnlsDc.SlowRound.canonical_rounds

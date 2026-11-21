@@ -2,7 +2,7 @@
 
 A machine-checked formalization, in Lean 4 with Mathlib, of the results of
 *Exactness of an iterated divide-and-conquer method for large-scale
-nonnegative least squares*. About 1,500 lines, with no `sorry`. Every result
+nonnegative least squares*. About 2,000 lines, with no `sorry`. Every result
 in the table below depends only on Lean's three standard axioms (`propext`,
 `Classical.choice`, `Quot.sound`); `AxiomCheck.lean` prints them for each.
 
@@ -46,6 +46,7 @@ Names are in the `NnlsDc` namespace.
 | Proposition 2 | `Problem.prop2` | `Inexact` |
 | Section 6, data-only bound on `‖x*‖₁` | `Problem.l1_bound`, `Problem.l1_le_M`, `Problem.l1_le_M_coord` | `Inexact` |
 | Section 8, re-chunking instance | `Rechunk.stops_suboptimal` | `Rechunk` |
+| Section 8, parametrized instance (a slow round; no sound tolerance) | `SlowRound.rounds`, `SlowRound.three_rounds`, `SlowRound.optimum`, `SlowRound.gap_fraction`, `SlowRound.tolerance_fires`, `SlowRound.canonical_rounds` | `SlowRound` |
 
 ## How the setting is modeled
 
@@ -70,6 +71,12 @@ Names are in the `NnlsDc` namespace.
 - `Rechunk` keeps (H1) and (H2) but drops (H3). It exhibits the article's
   two-column instance, where both stopping tests fire at `F = 1/4` while
   `v* = 0`.
+- `SlowRound` takes the article's parametrized instance, `0 < t ≤ 1/2`, in
+  the canonical instantiation. Whatever minimizers the nodes return, rounds
+  1–3 end at `F = t²/2`, `t²/(2 + t²)` and `0 = v*`; `tolerance_fires`
+  states that for every `τ > 0` some `t` makes round 2's improvement smaller
+  than `τ`, absolutely and relative to `v₁`, although round 2 is not optimal.
+  `canonical_rounds` exhibits the three rounds with explicit minimizers.
 
 Where the formal statements differ from the article, they are more general:
 
