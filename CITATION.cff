@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Exactness of iterated divide-and-conquer NNLS: verification code and Lean formalization"
+type: software
+license: MIT
+authors:
+  - given-names: Emre H.
+    family-names: Brookes
+    orcid: "https://orcid.org/0000-0001-7348-6476"
+keywords:
+  - nonnegative least squares
+  - divide and conquer
+  - column generation
+  - active-set methods
+  - global optimality certificate
+  - analytical ultracentrifugation
+  - Lean 4
+  - formal verification
