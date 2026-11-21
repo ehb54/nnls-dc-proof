@@ -65,7 +65,10 @@ removed. Returned solute sets are therefore never split across merge
 jobs, and every leaf carries the incumbent --- the canonical
 instantiation of conditions (H2) and (H3), in the atomic
 whole-set-packing form the article's Section~8 recommends, with bins
-closed by an adaptive size cap rather than a fixed fan-in.
+closed by an adaptive size cap rather than a fixed fan-in. One detail
+departs from that form: for an all-zero block solution the solver keeps
+one solute record (\texttt{utils/us\_solve\_sim.cpp}:1602 and 1610), so
+a merge can receive an extra candidate, which (H3) permits.
 
 The interactive 2DSA program (\texttt{programs/us\_2dsa}), a separate
 threaded implementation, packs and feeds back the same way, but its
@@ -212,7 +215,8 @@ The development line (4.3.0-dev, commit \texttt{0eee7f31f} of
   rounds fit noise, so the noise is not carried in every subproblem,
   which the article's Limitations require. Noise fitting is not
   examined further here.
-\item Unchanged: the norm screen, the four exits and their order, the
+\item Unchanged: the norm screen, the solute record kept for an all-zero
+  block solution, the four exits and their order, the
   optical-density proviso, the stored model after a rollback, and the
   interactive program's tests, defaults and records across models.
 \item A new headless mode of the interactive program, used in automated
