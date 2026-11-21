@@ -116,7 +116,8 @@ only when the dataset changes (line 642), not after every fit as a
 single master does (\texttt{2dsa\_master.cpp}:142), and never reset the
 stored previous pass. The first test of a later meniscus or Monte Carlo fit
 of the same dataset therefore meets the cap at once, compares the new
-fit's first pass with a pass of the previous fit, or, after a rollback
+fit's first pass with the last pass saved for refinement, from an
+earlier fit, or, after a rollback
 at pass~2 (possible with caps 3 to 5), starts afresh, since that
 rollback leaves the counter at~1 (\texttt{2dsa\_master.cpp}:831).
 \emph{Rollback:} from pass $\max(2,\lfloor\mathrm{cap}/2\rfloor)$ on, a
@@ -127,8 +128,9 @@ set repeats with all concentrations within 10\%, a test stricter than
 support repetition.
 
 Under (H1)--(H3), equal supports in consecutive rounds of the same fit
-certify optimality (Theorem~1(b)). With exact solves such a repetition
-leaves the variance exactly unchanged, so on the MPI master it ends
+certify optimality (Theorem~1(b)). If the cap permits the comparison,
+exact solves on a repeated support return the same basic solution, and
+hence the same variance, so on the MPI master such a repetition ends
 refinement at the value test, which comes first; the solute-set test
 fires only when the variances differ, as they do in floating point, or
 at the first test of a later fit in a composite job, which compares two
@@ -153,8 +155,9 @@ the problem solved but still counted in the reported variance, which
 then stops tracking the objective. After a rollback, the stored model
 pairs the solutes of the worsened pass with the variance of the pass
 before it (\texttt{us\_mpi\_analysis.cpp}:1568, 1577 and 2099); after a
-first-test rollback in a composite meniscus scan, that variance is the
-previous meniscus point's. The article's support test fired at rounds
+first-test rollback in a composite meniscus scan, that is the variance
+of the last pass saved for refinement, which can belong to an earlier
+meniscus point. The article's support test fired at rounds
 4--13 in its correlated-kernel suites, so a cap of 4 or less would bind
 first in every such trial.
 
@@ -177,8 +180,8 @@ count to 3, permitting one comparison, of round 2 with round 1.
 \smallskip
 \noindent The practical rule these notes support: under (H1)--(H3),
 equal supports in consecutive rounds of the same fit certify
-optimality over the screened grid, which excludes the first test of a
-later fit in a composite parallel-masters job and, in the interactive
+optimality over the screened grid; the rule excludes the first test of
+a later fit in a composite parallel-masters job and, in the interactive
 program, every model after the first and the scheduling path of
 Section~1. A run in floating point, whichever exit ended it, can be
 assessed with the pricing and complementarity residuals of the
