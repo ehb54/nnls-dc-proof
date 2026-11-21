@@ -20,6 +20,9 @@ relates to these conditions is set out in Online Resource 2.
   implementation). `make` builds all three PDFs (pdflatex + bibtex; on
   BasicTeX, install `algorithms algorithmicx float sttools
   threeparttable appendix breakurl wrapfig` via `tlmgr --usermode`).
+  The current builds are included as
+  `brookes_nnls_dc_optlett_submission.pdf`, `online-resource-1.pdf` and
+  `online-resource-2.pdf`.
 - `verify.py` — assertion-based verification: counterexample, 200
   randomized trials, per-edge monotonicity checks at every merge node,
   both KKT residuals (pricing and complementarity) asserted at

@@ -11,6 +11,11 @@ paper/*.log
 paper/*.out
 paper/main.pdf
 paper/brookes_nnls_dc_optlett_draft*.pdf
+paper/*-eps-converted-to.pdf
+
+# working copies; the current PDFs are tracked under fixed names
+paper/*_v[0-9]*.pdf
+paper/submission_v*/
 
 # cover letters and letterhead stay private (the letterhead carries a
 # phone number); the leading * also catches the versioned deliverables
